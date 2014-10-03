@@ -11,5 +11,5 @@ We create basicly those 2 graphics:
 
 The signal generation, 'in' the FFP:
 ![Alt text](/pictures/SignalGeneration.jpg?raw=true "The signal generation, 'in' the FFP")
-The signal encoding, when an field offset is present:
+The signal encoding, when a field offset is present:
 ![Alt text](/pictures/SignalEncoding.jpg?raw=true "The signal encoding, when an field offset is present")
