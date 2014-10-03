@@ -87,7 +87,7 @@ subplot(2,3,2)
 plot(time, M, 'k');
 xlabel('t / s')
 ylabel('M / (A/m)')
-title('Particle Magnetisation');
+title('Particle magnetisation');
 
 Umax = Scaling*sqrt(4*kB*temperature*deltaF*Rp);% [V]
 u=zeros(N,1);
