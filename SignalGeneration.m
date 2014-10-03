@@ -64,7 +64,7 @@ title('Particle magnetisation curve');
 
 %% Drive field Amplitude in function of the time
 H=H0*sin(2*pi*f*time);
-Hdt=H0*sin(2*pi*f*(time+dt));
+Hdt=H0*sin(2*pi*f*(time-dt));
 B = H.*mu0;
 Bdt = Hdt.*mu0;
 
@@ -78,8 +78,8 @@ title(sprintf('Drive field amplitude: %0.2g mT peak',B0*1000));
 M=zeros(N,1);
 Mdt=zeros(N,1);
 for i=1:N,
-  [M(i),~,~,~] = langevinParticle3( B(i),0,0,abs(B(i)), d,Ms,temperature,c,v);
-  [Mdt(i),~,~,~] = langevinParticle3( Bdt(i),0,0,abs(Bdt(i)), d,Ms,temperature,c,v);
+  [M(i),~,~,~] = langevinParticle4( B(i),0,0,abs(B(i)), d,Ms,temperature,c,v);
+  [Mdt(i),~,~,~] = langevinParticle4( Bdt(i),0,0,abs(Bdt(i)), d,Ms,temperature,c,v);
 end
 
 subplot(2,3,2)
@@ -92,7 +92,7 @@ Umax = Scaling*sqrt(4*kB*temperature*deltaF*Rp);% [V]
 u=zeros(N,1);
 
 for i=1:N,
-	u(i) = s*(M(i)-Mdt(i)) / dt + normrnd(0,Umax);
+	u(i) = s*(M(i)-Mdt(i))/dt + normrnd(0,Umax);
 end
 
 subplot(2,3,3)
