@@ -1,4 +1,4 @@
-function [Mx,My,Mz,a] = langevinParticle3(Bx,By,Bz,Babs,D,Ms,T,ironConcentrationSample,vSample)
+function [Mx,My,Mz,a] = langevinParticle4(Bx,By,Bz,Babs,D,Ms,T,ironConcentrationSample,vSample)
 % Implement the langevin function used to simulate the MPI signal
 
 % We have to provide
