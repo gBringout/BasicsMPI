@@ -25,7 +25,7 @@ dt          = 1/(50*10^6); %delta used to calculate the derivative. Used to comp
 % MPI signal generation
 f           = 25000; % [Hz] Frequency of the signal
 nbrPeriod   = 10; % nbr of signal period
-time        = 0:1/Fs:nbrPeriod/f; % [s] time vector
+time        = 0:1/Fs:nbrPeriod/f-1/Fs; % [s] time vector. Remove the last point as we start at zero.
 N           = length(time); %Number of time points
 H0          = 31831;% [A/m] Drive field amplitude (31831 A/m to generate 40 mT)
 B0          = H0*mu0; % [T] - H = B/mu
