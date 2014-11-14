@@ -17,7 +17,7 @@ Values and ideas comes mainly from:
 We create these graph and the associated data about the signal generation, 'in' the FFP, with the script "SignalGeneration.m"
 ![Alt text](/pictures/SignalGeneration.jpg?raw=true "The signal generation, 'in' the FFP")
 
-## MPI-signal creation ##
+## MPI-signal encoding ##
 We create these graph and the associated data about the signal encoding, when a field offset is present, with the script "SignalEncoding.m"
 ![Alt text](/pictures/SignalEncoding.jpg?raw=true "The signal encoding, when an field offset is present")
 
