@@ -6,11 +6,11 @@ If you have any questions, do not hesitate to contact me!
 This repository used a ["fork & pull"](https://help.github.com/articles/using-pull-requests/) model. This means that you should [fork](https://help.github.com/articles/fork-a-repo/) (that means personal copy) my repository to your GitHub account. If you are using windows, the GitHub for Windows software is a good start. You can also use directly the git softwareFrom there, you can work as you want, committing what you want. Afterwards, the goal is to pull some of the modification back to the master repositories, in order to let the other user benefit from your inputs.
 
 For more details, you can consults those articles:
-	- [GitHub glossary](https://help.github.com/articles/github-glossary/)
-	- [General worklow of git](http://git-scm.com/about)
-	- [Git original software](http://git-scm.com/downloads)
-	- [Software with a user interface for git](http://git-scm.com/downloads/guis)
-	- [GitHub for windows, what I am using](https://windows.github.com/)
+ * [GitHub glossary](https://help.github.com/articles/github-glossary/)
+ * [General worklow of git](http://git-scm.com/about)
+ * [Git original software](http://git-scm.com/downloads)
+ * [Software with a user interface for git](http://git-scm.com/downloads/guis)
+ * [GitHub for windows, what I am using](https://windows.github.com/)
 
 ## Testing
 
