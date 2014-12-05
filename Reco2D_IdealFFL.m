@@ -5,7 +5,7 @@ addpath(genpath('.'))
 addpath(genpath('..\SphericalHarmonics\'))
 addpath(genpath('..\ScannerDesign\'))
 
-%% Load the fields and prepae the data
+%% Load the fields and prepare the data
 disp('Loading and pre-calculation of datas')
 load('IdealFFL.mat');
 
