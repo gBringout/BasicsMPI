@@ -7,7 +7,7 @@ This repository used a ["fork & pull"](https://help.github.com/articles/using-pu
 
 For more details, you can consults those articles:
  * [GitHub glossary](https://help.github.com/articles/github-glossary/)
- * [General worklow of git](http://git-scm.com/about)
+ * [General work-flow of git](http://git-scm.com/about)
  * [Git original software](http://git-scm.com/downloads)
  * [Software with a user interface for git](http://git-scm.com/downloads/guis)
  * [GitHub for windows, what I am using](https://windows.github.com/)
@@ -28,11 +28,12 @@ Start reading my code and you'll get the hang of it. I try to optimize for reada
 
   * I indent using tabs
   * I try to name variable with minuscule and function with capital. example: variable frequencyDrive1. function: RebuildField()
-  * Make plotd :) Even if you comment them out afterwards, it help to understand what is done.
+  * Make plots :) Even if you comment them out afterwards, it help to understand what is done.
   * This is open source software. Consider the people who will read your code, and make it look nice for them.
 
 Thanks,
-Gael Bringout
+
+Gael
 
 ## Source
 [Open governement](https://github.com/opengovernment/opengovernment/blob/master/CONTRIBUTING.md) for the original files
