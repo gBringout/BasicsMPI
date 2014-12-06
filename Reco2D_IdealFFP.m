@@ -1,56 +1,62 @@
 clear all
 close all
 
+%% 1. Define the access path to the required other packages.
+% This are typically the sphericalHarmonics and  ScannerDesign packages.
+disp('1. Define the access path to the required other packages.')
 addpath(genpath('.'))
 addpath(genpath('..\SphericalHarmonics\'))
 addpath(genpath('..\ScannerDesign\'))
 
-%% Load the fields and prepae the data
-disp('Loading and pre-calculation of datas')
+%% 2. Loading the scanner model.
+% It is made of at least the spherical harmonics coefficient, the radius in which they are define and the nominal current used for the coil.
+disp('2. Loading the scanner''s coil codel')
 load('IdealFFP.mat');
 
-%% Define the parameters
-disp('calculate the frequency etc.')
-%we asumme that we have a squarre voxel with size dx*dy*dz
-% This is the size used for the SM
-% the phantom will be done with different values
+%% 3. Define all the other system parameters.
+% The spatial resolution of the phantom and the system matrix. The used frequencies, time vector, sampling frequencies, noise parameters etc. This is highly dependent on the scanner you want to model.
+disp('3. Define all the other system parameters.')
+
+% We asumme that we have squarre voxels with size dx*dy*dz
+% The resolution used for the SM and the phantom have to be different
 % This is done to avoid the 'Inverse Crime'. See "Introduction into MPI"
 % Knopp & Buzug 2011 p140 §5.4.4
-calculation.dxSM = 1*10^-3/2; % [m] size of a voxelin the x direction
-calculation.dySM = 1*10^-3/2; % [m] size of a voxelin the y direction
-calculation.dzSM = 1*10^-3/2; % [m] size of a voxelin the z direction
-calculation.dxPH = calculation.dxSM/1.3; % [m] size of a voxelin the x direction
-calculation.dyPH = calculation.dySM/1.3; % [m] size of a voxelin the y direction
-calculation.dzPH = calculation.dzSM; % [m] size of a voxelin the z direction
+calculation.dxSM = 1*10^-3/2; % [m] size of a voxel in the x direction
+calculation.dySM = 1*10^-3/2; % [m] size of a voxel in the y direction
+calculation.dzSM = 1*10^-3/2; % [m] size of a voxel in the z direction
+calculation.dxPH = calculation.dxSM/1.3; % [m] size of a voxel in the x direction
+calculation.dyPH = calculation.dySM/1.3; % [m] size of a voxel in the y direction
+calculation.dzPH = calculation.dzSM; % [m] size of a voxel in the z direction
 calculation.radiusFoV = 0.09;
 
+% frequencies & time signal
 system.baseFrequency = 6e5; % [Hz] Frequency used to generate the one of the drive fields
 system.freqDivider = [24 25 26]; % To generate the Lissajoue trajectorie
 system.frequencyDrive1 = system.baseFrequency/system.freqDivider(1); % Hz
 system.frequencyDrive2 = system.baseFrequency/system.freqDivider(2); % Hz
-system.frequencyDrive3 = system.baseFrequency/system.freqDivider(3); % Hz
+%system.frequencyDrive3 = system.baseFrequency/system.freqDivider(3); % Hz
 
-system.nbrPeriods = 1; % To adapte the resolution of the spectra
-system.samplingFrequency = 10e6; %[Hz] Sampling Frequency of the acquisition Board.
+system.nbrPeriods = 1; % If we want to make more periods of a full acquisition
+system.samplingFrequency = 6e6; %[Hz] Sampling Frequency of the acquisition Board.
 %Maximal and minimal frequencies in the spectrum
-system.fSMmin = 1; %because of the filters
-system.fSMmax = 500000; % to keep the data usage low
+system.fSMmin = 45000; % to remove the first harmonics and related distortion around it
+system.fSMmax = 500000; % to keep the memory usage low
 
 system.timeLength = system.nbrPeriods*(lcm(system.freqDivider(1), system.freqDivider(2))/system.baseFrequency); % [s] Time needed to make a complete 2D trajectorie
-%system.timeLength = system.nbrPeriods/system.frequencyDrive1; % [s] Time needed to make a complete 2D trajectorie
-system.numberOfTimePoints  = system.timeLength*system.samplingFrequency; % This should be an integer.
-%calculation.time = 0:1/system.samplingFrequency:system.timeLength-1/system.samplingFrequency;
-calculation.time = linspace(0,system.timeLength,system.numberOfTimePoints+1);
-calculation.time = calculation.time(1:end-1);% Remove the last point as we start at zero.
+system.numberOfTimePoints  = system.timeLength*system.samplingFrequency; % This should be an even integer.
+if mod(system.numberOfTimePoints,2) ~= 0
+  error('system.numberOfTimePoints should be even for this script')
+end
+calculation.time = linspace(0,system.timeLength,system.numberOfTimePoints+1); % +1 to ge the right numer of point after the nextstep
+calculation.time = calculation.time(1:end-1);% Remove the last point as we start at zero, and thus form a period.
 
-calculation.dt= 1/50*10^-6;
-calculation.deltaf = 1/system.timeLength;
+calculation.dt= 1/50*10^-6;% time difference used to calculate the derivatives
+calculation.deltaf = 1/system.timeLength;% resolution of our spectrum
 
 calculation.numberOfFrequencies = system.timeLength*system.samplingFrequency/2+1; % maximal number of frequencies
-system.freq = system.samplingFrequency/2*linspace(0,1,calculation.numberOfFrequencies);
-system.nbrPointPerDrivePeriod = (system.numberOfTimePoints-1)/system.nbrPeriods;
+system.freq = system.samplingFrequency/2*linspace(0,1,calculation.numberOfFrequencies); % frequencies of the spectrum
+system.nbrPointPerDrivePeriod = (system.numberOfTimePoints-1)/system.nbrPeriods; % number of acquired point for a period of the drive signal
 
-%general
 calculation.mu0 = 4*pi*1e-7; % permeability of the air.
 
 % Particle parameters
@@ -66,9 +72,11 @@ noise.Rp = 185*10^-3;
 noise.T = 310;
 noise.deltaF = 10*10^6; % [Hz] according to Weizenecker 2007 - A simulation study...
 noise.maxAmplitude = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp);
-noise.maxAmplitudeSM = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp)/30; % For the System matrix
-system.SNRLimits = 6;
-system.maxIterationReco = 10;
+noise.maxAmplitudeSM = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp)/30; % To simulate the fact that we can average the system matric 
+
+% Reconstruction related parameters
+system.SNRLimits = 6; % choosen alsmost arbitrarly
+system.maxIterationReco = 20; % choosen alsmost arbitrarly
 
 % defining the geometry of the Field of View
 system.xSM = -0.0100:calculation.dxSM:0.0100; %The resolution have to be limited in order to be able to reconstruct
@@ -87,15 +95,16 @@ system.sizeYPH = size(system.yPH,2);
 system.sizeZPH = size(system.zPH,2);
 
 
-%% Calculate the fields for the SM
-disp('Reconstruct the fields from SHC for the SM')
+%% 4. Calculate the field for the system matrix.
+% From the spherical harmonics coefficient, the magnetic flux density is calculated. The receive coils fields are also defined here.
+disp('4. Calculate the field for the system matrix.')
 tic
 Selection_Z.B = RebuildField7(Selection_Z.bc,Selection_Z.bs,Selection_Z.rhoReference,system.xSM,system.ySM,system.zSM,'sch');
 Drive_X.B = RebuildField7(Drive_X.bc,Drive_X.bs,Drive_X.rhoReference,system.xSM,system.ySM,system.zSM,'sch');
 Drive_Y.B  = RebuildField7(Drive_Y.bc,Drive_Y.bs,Drive_Y.rhoReference,system.xSM,system.ySM,system.zSM,'sch');
 toc
 
-% the sensibilte is here define as the field generated by a 1A current
+% the sensibility is here define as the field generated by a 1A current
 % this is why we have to save the bc and bs for a unit current
 system.s1 = Drive_X.B;
 calculation.s1x = system.s1(1,:);
@@ -109,13 +118,11 @@ calculation.s2z = system.s2(3,:);
 
 clear('i','j')
 
-%%
-% We have to calculate the derivative,
-% We thus need to now the field after a dt time
-% We then have the H matric where the field at time t is stored
-% And the Hdt matrix where the field at time t+dt is stored
+%% 5. Define the time-varying amplitude applied on the different coils. Also named sequence.
+% As we are going to make a derivative, two similare vectors are created for each amplitude.
+% One at t and one at t+dt.
 
-disp('Generating the time varying fields for the SM')
+disp('5. Define the time-varying amplitude applied on the different coils.')
 tic
 c1 = sin(2*pi*system.frequencyDrive1*calculation.time(:)');
 c2 = sin(2*pi*system.frequencyDrive2*calculation.time(:)');
@@ -130,7 +137,11 @@ system.coefDrive_Y =    c2;
 system.coefSelection_Z_dt = ones(1,system.numberOfTimePoints);
 system.coefDrive_X_dt =    c1_dt;
 system.coefDrive_Y_dt =    c2_dt;
+clear('c1','c2','c3','c4','c5','c1_dt','c2_dt','c3_dt','c4_dt','c5_dt')
 
+%% 6. Create the time-varying magnetic flux-density for the SM
+disp('6. Create the time-varying magnetic flux-density for the SM')
+tic
 Bx =system.coefSelection_Z'*   Selection_Z.current*Selection_Z.B(1,:)+...
     system.coefDrive_X'    *	Drive_X.current*Drive_X.B(1,:)+...
     system.coefDrive_Y'    *	Drive_Y.current*Drive_Y.B(1,:);
@@ -159,12 +170,13 @@ Bz_dt = system.coefSelection_Z_dt'*   Selection_Z.current*Selection_Z.B(3,:)+...
 
 Babs_dt = sqrt(Bx_dt.^2+By_dt.^2+Bz_dt.^2);
     
-clear('c1','c2','c3','c4','c5','c1_dt','c2_dt','c3_dt','c4_dt','c5_dt')
 fprintf('Time taken %2.0f s.\n', toc)
-%% Display the fields
+%% 7. The magnetic flux-density can be displayed in a 2D plane for all time t,
+% to check your MPI-signal generating volume's shape
+% 
 % figure
 % threshold = 3*10^-3;
-% for i=1:100:system.numberOfTimePoints
+% for i=1:1:system.numberOfTimePoints
 %     image = reshape(Babs(i,:),[system.sizeXSM,system.sizeYSM]);
 %     imagesc(system.xSM,system.ySM,image);
 %     xlabel('x axis /m')
@@ -175,14 +187,13 @@ fprintf('Time taken %2.0f s.\n', toc)
 %     %title(sprintf('Magnetic field density /T. Time %3.3f ms',calculation.time(i)*1000))
 % end
 
-%% Here we calculate the needed magnetization for the system matrix.
-% it is in fact a phantom with a concentration of 1 in any position
-% Later, we will just have to multiply this magnetization matrix by the
-% real concentration of the phantom, to get the measurements
-% Note that in order to optimize the needed RAM, we put the result into B
-% and then rename it M
+%% 8. Calculate the time-varying magnetization for each point in space for the SM.
+% Often using the Langevin model. 
+% Note that the magnetic flux density matrix are used to stored the 
+% obtained values, in order to save memory. If you have enough memory on 
+% your system, you can of-course save the magnetization in another matrix.
 
-disp('Calculting the time varying magnetization for the SM')
+disp('8. Calculate the time-varying magnetization for each point in space for the SM.')
 tic
 for i=1:system.numberOfTimePoints,
     [Bx(i,:),By(i,:),Bz(i,:)] = langevinParticle4(Bx(i,:),By(i,:),Bz(i,:),Babs(i,:),system.particleDiameter,system.MsatSinglePart,system.Tempe,system.concentrationPartiMax,system.volumeSample);
@@ -197,53 +208,41 @@ Mz_dt = Bz_dt;
 clear('Bx','By','Bz','Babs','Bx_dt','By_dt','Bz_dt','Babs_dt')
 fprintf('Time taken %2.0f s.\n', toc)
 
-%% Calculate the system matrix
-% Here we have the derivative of the Magnetization
-% If we concidere that the voltage at the begining of the experiment is nul
-% Then the first line are null
-% and the derivative is calculated with M(i-1)-M(i)
-disp('Calculating the SM')
+%% 9. Calculate the induce votlage for the SM and the SM.
+% Here the SM is calculated, reduced to his one-sided form and the energy is corrected.
+disp('9. Calculate the induced voltage for the SM and the SM.')
 tic
 u1=zeros(system.numberOfTimePoints,system.sizeXSM*system.sizeYSM*system.sizeZSM);
 u2=zeros(system.numberOfTimePoints,system.sizeXSM*system.sizeYSM*system.sizeZSM);
-%u3=zeros(system.numberOfTimePoints,1);
+
 for i=1:system.numberOfTimePoints
     u1(i,:) = ((calculation.s1x.*(Mx_dt(i,:)-Mx(i,:))/calculation.dt)+(calculation.s1y.*(My_dt(i,:)-My(i,:))/calculation.dt)+(calculation.s1z.*(Mz_dt(i,:)-Mz(i,:))/calculation.dt)) + normrnd(0,noise.maxAmplitudeSM);
     u2(i,:) = ((calculation.s2x.*(Mx_dt(i,:)-Mx(i,:))/calculation.dt)+(calculation.s2y.*(My_dt(i,:)-My(i,:))/calculation.dt)+(calculation.s2z.*(Mz_dt(i,:)-Mz(i,:))/calculation.dt)) + normrnd(0,noise.maxAmplitudeSM);
-    %u3(i,1) = ((calculation.s1x(1000).*(Mx_dt(i,1000)-Mx(i,1000))/calculation.dt)+(calculation.s1y(1000).*(My_dt(i,1000)-My(i,1000))/calculation.dt)+(calculation.s1z(1000).*(Mz_dt(i,1000)-Mz(i,1000))/calculation.dt)) + normrnd(0,noise.maxAmplitudeSM);
 end
-%u1 = u1+u2;
+
 clear('results','Mx','My','Mz','Mx_dt','My_dt','Mz_dt')
-results.SM1 = fft(u1)'; % we take the FFT
-results.SM1 = results.SM1(:,1:calculation.numberOfFrequencies);% and use the one sided part
-results.SM2 = fft(u2)'; % we take the FFT
-results.SM2 = results.SM2(:,1:calculation.numberOfFrequencies);% and use the one sided part
+results.SM1 = fft(u1)'/system.numberOfTimePoints; % we take the FFT
+results.SM1 = 2*results.SM1(:,1:calculation.numberOfFrequencies);% and use the one sided part
+results.SM1(:,1) = results.SM1(:,1)/2;% Correct the energy
+results.SM1(:,end) = results.SM1(:,end)/2;% Correct the energy
 
-%SM = SM(:,1:floor(system.numberOfTimePoints/2+1)); % and use the one sided part
-% filter directly the frequencies
-% finding the index
-[~,Imin] = find(abs(system.freq-system.fSMmin) < calculation.deltaf,1,'first');
-[~,Imax] = find(abs(system.freq-system.fSMmax) < calculation.deltaf,1,'first');
-% We now remove the useless frequencies
-results.SM1 = results.SM1(:,1:Imax);
-results.SM2 = results.SM2(:,1:Imax);
+results.SM2 = fft(u2)'/system.numberOfTimePoints; % we take the FFT
+results.SM2 = 2*results.SM2(:,1:calculation.numberOfFrequencies);% and use the one sided part
+results.SM2(:,1) = results.SM2(:,1)/2;% Correct the energy
+results.SM2(:,end) = results.SM2(:,end)/2;% Correct the energy
 
-%save('SM_FFL6_HR_361x363.mat','SM','-v7.3')
+%save('SM_FFP.mat','SM','-v7.3') %Watch out, the SM are often quite big.
 
 clear('Imax','Imin','u1','u2','i','j');
 fprintf('Time taken %2.0f s.\n', toc)
 
-%% Make the phantom
-% It has to have the same size as the fields
-phantom.shape = [system.sizeXPH system.sizeYPH system.sizeZPH]; % Number of pixel per direction
-%phantom.shape = [1820 1860 1]; % Number of pixel per direction
-phantom.size = [2*max(system.xPH) 2*max(system.yPH) 0.0001]; % size of thr FoV
-%phantom.diameters = [0.002, 0.004, 0.006, 0.008]; % [m] diameter of the circles 
-phantom.particleDiameter = system.particleDiameter; %Best resolution with 50nm, Worst with 30nm
-phantom.concentrationPartiMax =  system.concentrationPartiMax; % [mol/l]undiluted Resovist: 5.0e-4;
-%phantom.shapeScaled = createResolutionPhantomGael(phantom.shape, phantom.size ,phantom.diameters);
+%% 10. Make the phantom
+% we use the same particle as for the SM
+disp('10. Make the phantom.')
+phantom.shape = [system.sizeXPH system.sizeYPH system.sizeZPH];
+phantom.particleDiameter = system.particleDiameter;
+phantom.concentrationPartiMax =  system.concentrationPartiMax;
 phantom.shapeScaled = createResolutionPhantomGael4(phantom.shape, 8);
-%phantom.shapeScaled = createResolutionPhantomGael3(phantom.shape);
 
 %Make sure of the scaling of the phantom
 phantom.shapeScaled = phantom.shapeScaled/max(phantom.shapeScaled(:));
@@ -251,8 +250,8 @@ phantom.volumeSample = calculation.dxPH*calculation.dyPH*calculation.dzPH; % [m^
 phantom.MsatSinglePart = system.MsatSinglePart;
 %figure;imagesc(system.xPH,system.yPH,phantom.shapeScaled)
 
-%It is not important to have all the particle in the field of view
-% as long as the field have been deletec outside the FoV :)
+% apply the field calculation limitation of the spherical harmonics to the
+% phantom shape
 for i=1:system.sizeXPH
     for j=1:system.sizeYPH
         if sqrt(system.xPH(i)^2+system.yPH(j)^2)>calculation.radiusFoV
@@ -261,9 +260,9 @@ for i=1:system.sizeXPH
     end
 end
 
-%% Calculate the fields for the Phantom
+%% 11. Calculate the fields for the phantom measurement.
 
-disp('Reconstruct the fields from SHC for the phantom measurement')
+disp('11. Calculate the fields for the phantom measurement.')
 Selection_Z.B = RebuildField7(Selection_Z.bc,Selection_Z.bs,Selection_Z.rhoReference,system.xPH,system.yPH,system.zPH,'sch');
 Drive_X.B = RebuildField7(Drive_X.bc,Drive_X.bs,Drive_X.rhoReference,system.xPH,system.yPH,system.zPH,'sch');
 Drive_Y.B  = RebuildField7(Drive_Y.bc,Drive_Y.bs,Drive_Y.rhoReference,system.xPH,system.yPH,system.zPH,'sch');
@@ -280,8 +279,9 @@ calculation.s2x = system.s2(1,:);
 calculation.s2y = system.s2(2,:);
 calculation.s2z = system.s2(3,:);
 
-
-disp('Generating the time varying fields for the phantom measurement')
+%% 12. Create the time-varying magnetic flux-density for the phantom measurement
+tic
+disp('12. Create the time-varying magnetic flux-density for the phantom measurement.')
 Bx =system.coefSelection_Z'*   Selection_Z.current*Selection_Z.B(1,:)+...
     system.coefDrive_X'    *	Drive_X.current*Drive_X.B(1,:)+...
     system.coefDrive_Y'    *	Drive_Y.current*Drive_Y.B(1,:);
@@ -314,9 +314,13 @@ clear('c1','c2','c3','c4','c5','c1_dt','c2_dt','c3_dt','c4_dt','c5_dt')
 fprintf('Time taken %2.0f s.\n', toc)
 
 
-%% Here we calculate the needed magnetization for the phantom
+%% 13. Calculate the time-varying magnetization for the phantom measurment.
+% Often using the Langevin model. 
+% Note that the magnetic flux density matrix are used to stored the 
+% obtained values, in order to save memory. If you have enough memory on 
+% your system, you can of-course save the magnetization in another matrix.
 
-disp('Calculting the time varying magnetization for the phantom measurement')
+disp('13. Calculate the time-varying magnetization for each point of the phantom.')
 tic
 for i=1:system.numberOfTimePoints,
     [Bx(i,:),By(i,:),Bz(i,:)] = langevinParticle4(Bx(i,:),By(i,:),Bz(i,:),Babs(i,:),phantom.particleDiameter,phantom.MsatSinglePart,system.Tempe,phantom.concentrationPartiMax,phantom.volumeSample);
@@ -331,8 +335,9 @@ Mz_dt = Bz_dt;
 clear('Bx','By','Bz','Babs','Bx_dt','By_dt','Bz_dt','Babs_dt')
 fprintf('Time taken %2.0f s.\n', toc)
 
-%% Multiply by the phantom
-disp('Applaying the phantom');
+%% 14. Multiplying the time-varying magnetization for each point of the 
+% phantom with the phantom's tracer concentration.
+disp('14. Multiplying the time-varying magnetization for each point of the phantom with the phantom''s tracer concentration.');
 tic
 for i=1:system.numberOfTimePoints,
     Mx(i,:) = Mx(i,:).*phantom.shapeScaled(:)';
@@ -346,14 +351,11 @@ end
 clear('i');
 fprintf('Time taken %2.0f s.\n', toc)
 
-%% Calculating the signal
-% Here we have the derivative of the Magnetization
-% If we concidere that the voltage at the begining of the experiment is nul
-% Then the first line are null
-% and the derivative is calculated with M(i-1)-M(i)
-disp('Calculating the signal')
-tic
+%% 15. Calculate the induced voltage for the phantom measurement.
+% Here the FFT is calculated, reduced to his one-sided form and the energy is corrected.
+disp('15. Calculate the induced voltage for the phantom measurement.')
 
+tic
 results.u1_2=zeros(system.numberOfTimePoints,1);
 results.u2_2=zeros(system.numberOfTimePoints,1);
 for i=1:system.numberOfTimePoints
@@ -362,38 +364,43 @@ for i=1:system.numberOfTimePoints
 end
 clear('Mx','My','Mz','Mx_dt','My_dt','Mz_dt');
 
-%results.u1_2 = results.u1_2+results.u2_2;
-%  Extracting the spectrum of the particle signal
-results.signal1FFT = fft(results.u1_2)'; %We store in the line each point, in the column the time point
-results.signal2FFT = fft(results.u2_2)';
-results.signal1FFT_oneSided = results.signal1FFT(1:calculation.numberOfFrequencies);% We now remove the folded part of the spectrum
-results.signal2FFT_oneSided = results.signal2FFT(1:calculation.numberOfFrequencies);
+results.signal1FFT = fft(results.u1_2)'/system.numberOfTimePoints; %We store in the line each point, in the column the time point
+results.signal1FFT_oneSided = 2*results.signal1FFT(1:calculation.numberOfFrequencies);% We now remove the folded part of the spectrum
+results.signal1FFT_oneSided(:,1) = results.signal1FFT_oneSided(:,1)/2;% Correct the energy
+results.signal1FFT_oneSided(:,end) = results.signal1FFT_oneSided(:,end)/2;% Correct the energy
 results.signal1AbsFFT_oneSided = abs(results.signal1FFT_oneSided);
-results.signal2AbsFFT_oneSided = abs(results.signal2FFT_oneSided);
 calculation.S1 = 1; %as we are using a rectangular windows
-results.signal1PowerSpectrum = 2*results.signal1AbsFFT_oneSided.^2/calculation.S1^2; % According to report GH_FFT from G. Heinzel
-results.signal2PowerSpectrum = 2*results.signal2AbsFFT_oneSided.^2/calculation.S1^2; % According to report GH_FFT from G. Heinzel
+results.signal1PowerSpectrum = results.signal1AbsFFT_oneSided.^2/calculation.S1^2; % According to report GH_FFT from G. Heinzel
 results.signal1AmplitudeSpectrum = sqrt(results.signal1PowerSpectrum);
+
+results.signal2FFT = fft(results.u2_2)'/system.numberOfTimePoints;
+results.signal2FFT_oneSided = 2*results.signal2FFT(1:calculation.numberOfFrequencies);
+results.signal2FFT_oneSided(:,1) = results.signal2FFT_oneSided(:,1)/2;% Correct the energy
+results.signal2FFT_oneSided(:,end) = results.signal2FFT_oneSided(:,end)/2;% Correct the energy
+results.signal2AbsFFT_oneSided = abs(results.signal2FFT_oneSided);
+results.signal2PowerSpectrum = results.signal2AbsFFT_oneSided.^2/calculation.S1^2; % According to report GH_FFT from G. Heinzel
 results.signal2AmplitudeSpectrum = sqrt(results.signal2PowerSpectrum);
 
-% Calculation of the Power on the noise signal
+
+
+
+%% 16. Calculate the SNR.
+disp('16. Calculate the SNR.')
 noise.uNoise = zeros(system.numberOfTimePoints,1);
 for i=1:system.numberOfTimePoints
 	noise.uNoise(i) = normrnd(0,noise.maxAmplitude);
 end
-noise.noiseFFT = fft(noise.uNoise)';   
-noise.noiseFFT_oneSided= noise.noiseFFT(1:calculation.numberOfFrequencies); % We now remove the folded part of the spectrum and multiply by 2 to keep the same energy
-noise.noiseAbsFFT_oneSided = abs(noise.noiseFFT_oneSided); % Is this really an energy?
+noise.noiseFFT = fft(noise.uNoise)'/system.numberOfTimePoints;   
+noise.noiseFFT_oneSided= 2*noise.noiseFFT(1:calculation.numberOfFrequencies); % We now remove the folded part of the spectrum and multiply by 2 to keep the same energy
+noise.noiseFFT_oneSided(:,1) = noise.noiseFFT_oneSided(:,1)/2;% Correct the energy
+noise.noiseFFT_oneSided(:,end) = noise.noiseFFT_oneSided(:,end)/2;% Correct the energy
+noise.noiseAbsFFT_oneSided = abs(noise.noiseFFT_oneSided);
 calculation.S1 = 1; %as we are using a rectangular windows
-noise.noisePowerSpectrum = 2*noise.noiseAbsFFT_oneSided.^2/calculation.S1^2; % According to report GH_FFT from G. Heinzel
+noise.noisePowerSpectrum = noise.noiseAbsFFT_oneSided.^2/calculation.S1^2;
 noise.noiseAmplitudeSpectrum = sqrt(noise.noisePowerSpectrum);
-%calculation.S2 = 1; %as we are using a rectangular windows
-%noiseAmplitudeSpectralDensity = 2*results.noiseAbsFFT_oneSided.^2/(calculation.S2^2*samplingFrequency);
 noise.stdNoiseAmplitudeSpectrum = std(noise.noiseAmplitudeSpectrum);
-%noise.meanNoiseAmplitudeSpectrum = mean(noise.noiseAmplitudeSpectrum);
-%maxNoiseAmplitudeSpectrum = max(results.noiseAmplitudeSpectrum);
 
-% Calculating the SNR
+% Calculating the SNR of the phantom signal
 results.noiseLevel = noise.stdNoiseAmplitudeSpectrum;
 results.nbrGoodFrequency1 = 1;
 results.nbrGoodFrequency2 = 1;
@@ -411,24 +418,19 @@ for i=2:calculation.numberOfFrequencies
     end
 end
 
-% Filtering signals and SM
+%% 17. Truncating signals and SM to remove as much unnecessary information as possible
+disp('17. Truncating signals and SM.')
 index = 1;
 results.tSNR1 = zeros(1,results.nbrGoodFrequency1-1);
-%goodFrequency = zeros(1,nbrGoodFrequency-1);
-%tSignalAmplitudeSpectrum = zeros(1,nbrGoodFrequency-1);
 results.tFreq1 = zeros(1,results.nbrGoodFrequency1-1);
 results.tSM1 = zeros(size(results.SM1,1),results.nbrGoodFrequency1-1);
-%tSignalPower = zeros(1,nbrGoodFrequency-1); % The signal with zero where it is not taken into account
 results.tSignal1FFT_oneSided = zeros(1,results.nbrGoodFrequency1-1);
 for i=2:size(results.signal1FFT_oneSided,2)
     if results.signal1SNR(i) > system.SNRLimits && system.freq(i) > system.fSMmin && system.freq(i) < system.fSMmax
         results.tSNR1(index) = results.signal1SNR(i); % used in a figure
         results.tSignal1FFT_oneSided(index) = results.signal1FFT_oneSided(i); % used in reco
-        %tSignalAmplitudeSpectrum(index) = signalAmplitudeSpectrum(i);
-        %tSignalPower(index) = signalPowerSpectrum(i);
         results.tSM1(:,index) = results.SM1(:,i); % used in reco
         results.tFreq1(index) = system.freq(i); % used in a figure
-        %goodFrequency(index) = 1;
         index = index+1;
     end
 end
@@ -436,21 +438,15 @@ end
 % second signal
 index = 1;
 results.tSNR2 = zeros(1,results.nbrGoodFrequency2-1);
-%goodFrequency = zeros(1,nbrGoodFrequency-1);
-%tSignalAmplitudeSpectrum = zeros(1,nbrGoodFrequency-1);
 results.tFreq2 = zeros(1,results.nbrGoodFrequency2-1);
 results.tSM2 = zeros(size(results.SM2,1),results.nbrGoodFrequency2-1);
-%tSignalPower = zeros(1,nbrGoodFrequency-1); % The signal with zero where it is not taken into account
 results.tSignal2FFT_oneSided = zeros(1,results.nbrGoodFrequency2-1);
 for i=2:calculation.numberOfFrequencies
     if results.signal2SNR(i) > system.SNRLimits && system.freq(i) > system.fSMmin && system.freq(i) < system.fSMmax
         results.tSNR2(index) = results.signal2SNR(i); % used in a figure
         results.tSignal2FFT_oneSided(index) = results.signal2FFT_oneSided(i); % used in reco
-        %tSignalAmplitudeSpectrum(index) = signalAmplitudeSpectrum(i);
-        %tSignalPower(index) = signalPowerSpectrum(i);
         results.tSM2(:,index) = results.SM2(:,i); % used in reco
         results.tFreq2(index) = system.freq(i); % used in a figure
-        %goodFrequency(index) = 1;
         index = index+1;
     end
 end
@@ -458,14 +454,11 @@ end
 clear('index','i','j');
 fprintf('Time taken %2.0f s.\n', toc)
 
-%% Reconstrucing with partial signal (SNR thresholding)
+%% 18. Assemble the channel and reconstruct the truncated signals. (SNR thresholding)
 
-disp('Reconstructing with partial signal')
+disp('18. Assemble the channel and reconstruct the truncated signals.')
 
 tic
-%[results.X,results.rho,results.eta] = artGael([results.tSM1]',[results.tSignal1FFT_oneSided]',50);
-%[results.X,results.rho,results.eta] = artGael([results.tSM2]',[results.tSignal2FFT_oneSided]',50);
-%[results.X,results.rho,results.eta] = artGael([results.tSM1+results.tSM2]',[results.tSignal1FFT_oneSided+results.tSignal1FFT_oneSided]',50);
 [results.X,~,~] = artGael([results.tSM1,results.tSM2]',[results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided]',system.maxIterationReco);
 
 results.errorEstimate = zeros(1,system.maxIterationReco);
@@ -521,7 +514,7 @@ title('SNR (based on the amplitude spectrum)')
 xlim([0 21])
 %ylim([1 10^2]);%std(signalSNR)])
 
-figure('Name','SM 1')
+figure('Name','SM 1 - real part of the first frequency components')
 maxSM = zeros(1,100);
 for i=2:100
     subplot(10,10,i)
@@ -539,7 +532,25 @@ end
 subplot(10,10,1)
 plot(maxSM/max(maxSM))
 
-figure('Name','SM 2')
+figure('Name','SM 1 - absolute value of the first frequency components')
+maxSM = zeros(1,100);
+for i=2:100
+    subplot(10,10,i)
+    results.SM_oneSided = 2*results.SM1(:,i);
+    results.SM_oneSided(1) = results.SM1(1,i);
+    res = reshape(abs(results.SM_oneSided(:)),[system.sizeXSM,system.sizeYSM]);
+    imagesc(system.xSM,system.ySM,res);
+    maxSM(i) = max(max(abs(results.SM_oneSided(:))));
+    axis square
+    set(gca, 'XTickLabel', [],'XTick',[])
+    set(gca, 'YTickLabel', [],'YTick',[])
+    title(sprintf('%i',i-1))
+    colormap('gray')
+end
+subplot(10,10,1)
+plot(maxSM/max(maxSM))
+
+figure('Name','SM 2 - real part of the first frequency components')
 for i=2:100
     subplot(10,10,i)
     results.SM2_oneSided = 2*results.SM2(:,i);
