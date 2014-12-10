@@ -68,9 +68,9 @@ system.volumeSample = calculation.dxSM*calculation.dySM*calculation.dzSM; % [m^3
 
 % We use the noise model Weiznecker 2007
 calculation.kB  = 1.380650424e-23;
-noise.Rp = 185*10^-3;
-noise.T = 310;
-noise.deltaF = 10*10^6; % [Hz] according to Weizenecker 2007 - A simulation study...
+noise.Rp = 185*10^-3; % [Ohm]  according to Weizenecker 2007 - A simulation study...
+noise.T = 310; % [K]
+noise.deltaF = system.samplingFrequency/2; % [Hz]
 noise.maxAmplitude = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp);
 noise.maxAmplitudeSM = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp)/30; % To simulate the fact that we can average the system matric 
 
