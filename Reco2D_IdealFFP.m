@@ -79,6 +79,7 @@ system.SNRLimits = 6; % choosen alsmost arbitrarly
 system.maxIterationReco = 20; % choosen alsmost arbitrarly
 
 % defining the geometry of the Field of View
+%0.0100:0.0100
 system.xSM = -0.0100:calculation.dxSM:0.0100; %The resolution have to be limited in order to be able to reconstruct
 system.ySM = -0.0100:calculation.dySM:0.0100;
 system.zSM = 0:calculation.dzSM:0;
@@ -124,11 +125,11 @@ clear('i','j')
 
 disp('5. Define the time-varying amplitude applied on the different coils.')
 tic
-c1 = sin(2*pi*system.frequencyDrive1*calculation.time(:)');
-c2 = sin(2*pi*system.frequencyDrive2*calculation.time(:)');
+c1 = sin(2*pi*system.frequencyDrive1*calculation.time(:).');
+c2 = sin(2*pi*system.frequencyDrive2*calculation.time(:).');
 
-c1_dt = sin(2*pi*system.frequencyDrive1*(calculation.time(:)'+calculation.dt));
-c2_dt = sin(2*pi*system.frequencyDrive2*(calculation.time(:)'+calculation.dt));
+c1_dt = sin(2*pi*system.frequencyDrive1*(calculation.time(:).'+calculation.dt));
+c2_dt = sin(2*pi*system.frequencyDrive2*(calculation.time(:).'+calculation.dt));
 
 system.coefSelection_Z = ones(1,system.numberOfTimePoints);
 system.coefDrive_X =    c1;
@@ -142,31 +143,31 @@ clear('c1','c2','c3','c4','c5','c1_dt','c2_dt','c3_dt','c4_dt','c5_dt')
 %% 6. Create the time-varying magnetic flux-density for the SM
 disp('6. Create the time-varying magnetic flux-density for the SM')
 tic
-Bx =system.coefSelection_Z'*   Selection_Z.current*Selection_Z.B(1,:)+...
-    system.coefDrive_X'    *	Drive_X.current*Drive_X.B(1,:)+...
-    system.coefDrive_Y'    *	Drive_Y.current*Drive_Y.B(1,:);
+Bx =system.coefSelection_Z.'*   Selection_Z.current*Selection_Z.B(1,:)+...
+    system.coefDrive_X.'    *	Drive_X.current*Drive_X.B(1,:)+...
+    system.coefDrive_Y.'    *	Drive_Y.current*Drive_Y.B(1,:);
 
-By =system.coefSelection_Z'*   Selection_Z.current*Selection_Z.B(2,:)+...
-    system.coefDrive_X'    *	Drive_X.current*Drive_X.B(2,:)+...
-    system.coefDrive_Y'    *	Drive_Y.current*Drive_Y.B(2,:);
+By =system.coefSelection_Z.'*   Selection_Z.current*Selection_Z.B(2,:)+...
+    system.coefDrive_X.'    *	Drive_X.current*Drive_X.B(2,:)+...
+    system.coefDrive_Y.'    *	Drive_Y.current*Drive_Y.B(2,:);
 
-Bz =system.coefSelection_Z'*   Selection_Z.current*Selection_Z.B(3,:)+...
-    system.coefDrive_X'    *	Drive_X.current*Drive_X.B(3,:)+...
-    system.coefDrive_Y'    *	Drive_Y.current*Drive_Y.B(3,:);
+Bz =system.coefSelection_Z.'*   Selection_Z.current*Selection_Z.B(3,:)+...
+    system.coefDrive_X.'    *	Drive_X.current*Drive_X.B(3,:)+...
+    system.coefDrive_Y.'    *	Drive_Y.current*Drive_Y.B(3,:);
 
 Babs = sqrt(Bx.^2+By.^2+Bz.^2);
 
-Bx_dt = system.coefSelection_Z_dt'*   Selection_Z.current*Selection_Z.B(1,:)+...
-        system.coefDrive_X_dt'    *	Drive_X.current*Drive_X.B(1,:)+...
-        system.coefDrive_Y_dt'    *	Drive_Y.current*Drive_Y.B(1,:);
+Bx_dt = system.coefSelection_Z_dt.'*   Selection_Z.current*Selection_Z.B(1,:)+...
+        system.coefDrive_X_dt.'    *	Drive_X.current*Drive_X.B(1,:)+...
+        system.coefDrive_Y_dt.'    *	Drive_Y.current*Drive_Y.B(1,:);
 
-By_dt = system.coefSelection_Z_dt'*   Selection_Z.current*Selection_Z.B(2,:)+...
-        system.coefDrive_X_dt'    *	Drive_X.current*Drive_X.B(2,:)+...
-        system.coefDrive_Y_dt'    *	Drive_Y.current*Drive_Y.B(2,:);
+By_dt = system.coefSelection_Z_dt.'*   Selection_Z.current*Selection_Z.B(2,:)+...
+        system.coefDrive_X_dt.'    *	Drive_X.current*Drive_X.B(2,:)+...
+        system.coefDrive_Y_dt.'    *	Drive_Y.current*Drive_Y.B(2,:);
 
-Bz_dt = system.coefSelection_Z_dt'*   Selection_Z.current*Selection_Z.B(3,:)+...
-        system.coefDrive_X_dt'    *	Drive_X.current*Drive_X.B(3,:)+...
-        system.coefDrive_Y_dt'    *	Drive_Y.current*Drive_Y.B(3,:);
+Bz_dt = system.coefSelection_Z_dt.'*   Selection_Z.current*Selection_Z.B(3,:)+...
+        system.coefDrive_X_dt.'    *	Drive_X.current*Drive_X.B(3,:)+...
+        system.coefDrive_Y_dt.'    *	Drive_Y.current*Drive_Y.B(3,:);
 
 Babs_dt = sqrt(Bx_dt.^2+By_dt.^2+Bz_dt.^2);
     
@@ -221,12 +222,12 @@ for i=1:system.numberOfTimePoints
 end
 
 clear('results','Mx','My','Mz','Mx_dt','My_dt','Mz_dt')
-results.SM1 = fft(u1)'/system.numberOfTimePoints; % we take the FFT
+results.SM1 = fft(u1).'/system.numberOfTimePoints; % we take the FFT
 results.SM1 = 2*results.SM1(:,1:calculation.numberOfFrequencies);% and use the one sided part
 results.SM1(:,1) = results.SM1(:,1)/2;% Correct the energy
 results.SM1(:,end) = results.SM1(:,end)/2;% Correct the energy
 
-results.SM2 = fft(u2)'/system.numberOfTimePoints; % we take the FFT
+results.SM2 = fft(u2).'/system.numberOfTimePoints; % we take the FFT
 results.SM2 = 2*results.SM2(:,1:calculation.numberOfFrequencies);% and use the one sided part
 results.SM2(:,1) = results.SM2(:,1)/2;% Correct the energy
 results.SM2(:,end) = results.SM2(:,end)/2;% Correct the energy
@@ -282,31 +283,31 @@ calculation.s2z = system.s2(3,:);
 %% 12. Create the time-varying magnetic flux-density for the phantom measurement
 tic
 disp('12. Create the time-varying magnetic flux-density for the phantom measurement.')
-Bx =system.coefSelection_Z'*   Selection_Z.current*Selection_Z.B(1,:)+...
-    system.coefDrive_X'    *	Drive_X.current*Drive_X.B(1,:)+...
-    system.coefDrive_Y'    *	Drive_Y.current*Drive_Y.B(1,:);
+Bx =system.coefSelection_Z.'*   Selection_Z.current*Selection_Z.B(1,:)+...
+    system.coefDrive_X.'    *	Drive_X.current*Drive_X.B(1,:)+...
+    system.coefDrive_Y.'    *	Drive_Y.current*Drive_Y.B(1,:);
 
-By =system.coefSelection_Z'*   Selection_Z.current*Selection_Z.B(2,:)+...
-    system.coefDrive_X'    *	Drive_X.current*Drive_X.B(2,:)+...
-    system.coefDrive_Y'    *	Drive_Y.current*Drive_Y.B(2,:);
+By =system.coefSelection_Z.'*   Selection_Z.current*Selection_Z.B(2,:)+...
+    system.coefDrive_X.'    *	Drive_X.current*Drive_X.B(2,:)+...
+    system.coefDrive_Y.'    *	Drive_Y.current*Drive_Y.B(2,:);
 
-Bz =system.coefSelection_Z'*   Selection_Z.current*Selection_Z.B(3,:)+...
-    system.coefDrive_X'    *	Drive_X.current*Drive_X.B(3,:)+...
-    system.coefDrive_Y'    *	Drive_Y.current*Drive_Y.B(3,:);
+Bz =system.coefSelection_Z.'*   Selection_Z.current*Selection_Z.B(3,:)+...
+    system.coefDrive_X.'    *	Drive_X.current*Drive_X.B(3,:)+...
+    system.coefDrive_Y.'    *	Drive_Y.current*Drive_Y.B(3,:);
 
 Babs = sqrt(Bx.^2+By.^2+Bz.^2);
 
-Bx_dt = system.coefSelection_Z_dt'*   Selection_Z.current*Selection_Z.B(1,:)+...
-        system.coefDrive_X_dt'    *	Drive_X.current*Drive_X.B(1,:)+...
-        system.coefDrive_Y_dt'    *	Drive_Y.current*Drive_Y.B(1,:);
+Bx_dt = system.coefSelection_Z_dt.'*   Selection_Z.current*Selection_Z.B(1,:)+...
+        system.coefDrive_X_dt.'    *	Drive_X.current*Drive_X.B(1,:)+...
+        system.coefDrive_Y_dt.'    *	Drive_Y.current*Drive_Y.B(1,:);
 
-By_dt = system.coefSelection_Z_dt'*   Selection_Z.current*Selection_Z.B(2,:)+...
-        system.coefDrive_X_dt'    *	Drive_X.current*Drive_X.B(2,:)+...
-        system.coefDrive_Y_dt'    *	Drive_Y.current*Drive_Y.B(2,:);
+By_dt = system.coefSelection_Z_dt.'*   Selection_Z.current*Selection_Z.B(2,:)+...
+        system.coefDrive_X_dt.'    *	Drive_X.current*Drive_X.B(2,:)+...
+        system.coefDrive_Y_dt.'    *	Drive_Y.current*Drive_Y.B(2,:);
 
-Bz_dt = system.coefSelection_Z_dt'*   Selection_Z.current*Selection_Z.B(3,:)+...
-        system.coefDrive_X_dt'    *	Drive_X.current*Drive_X.B(3,:)+...
-        system.coefDrive_Y_dt'    *	Drive_Y.current*Drive_Y.B(3,:);
+Bz_dt = system.coefSelection_Z_dt.'*   Selection_Z.current*Selection_Z.B(3,:)+...
+        system.coefDrive_X_dt.'    *	Drive_X.current*Drive_X.B(3,:)+...
+        system.coefDrive_Y_dt.'    *	Drive_Y.current*Drive_Y.B(3,:);
 
 Babs_dt = sqrt(Bx_dt.^2+By_dt.^2+Bz_dt.^2);
     
@@ -340,12 +341,12 @@ fprintf('Time taken %2.0f s.\n', toc)
 disp('14. Multiplying the time-varying magnetization for each point of the phantom with the phantom''s tracer concentration.');
 tic
 for i=1:system.numberOfTimePoints,
-    Mx(i,:) = Mx(i,:).*phantom.shapeScaled(:)';
-    My(i,:) = My(i,:).*phantom.shapeScaled(:)';
-    Mz(i,:) = Mz(i,:).*phantom.shapeScaled(:)';
-    Mx_dt(i,:) = Mx_dt(i,:).*phantom.shapeScaled(:)';
-    My_dt(i,:) = My_dt(i,:).*phantom.shapeScaled(:)';
-    Mz_dt(i,:) = Mz_dt(i,:).*phantom.shapeScaled(:)';
+    Mx(i,:) = Mx(i,:).*phantom.shapeScaled(:).';
+    My(i,:) = My(i,:).*phantom.shapeScaled(:).';
+    Mz(i,:) = Mz(i,:).*phantom.shapeScaled(:).';
+    Mx_dt(i,:) = Mx_dt(i,:).*phantom.shapeScaled(:).';
+    My_dt(i,:) = My_dt(i,:).*phantom.shapeScaled(:).';
+    Mz_dt(i,:) = Mz_dt(i,:).*phantom.shapeScaled(:).';
 end
 
 clear('i');
@@ -364,7 +365,7 @@ for i=1:system.numberOfTimePoints
 end
 clear('Mx','My','Mz','Mx_dt','My_dt','Mz_dt');
 
-results.signal1FFT = fft(results.u1_2)'/system.numberOfTimePoints; %We store in the line each point, in the column the time point
+results.signal1FFT = fft(results.u1_2).'/system.numberOfTimePoints; %We store in the line each point, in the column the time point
 results.signal1FFT_oneSided = 2*results.signal1FFT(1:calculation.numberOfFrequencies);% We now remove the folded part of the spectrum
 results.signal1FFT_oneSided(:,1) = results.signal1FFT_oneSided(:,1)/2;% Correct the energy
 results.signal1FFT_oneSided(:,end) = results.signal1FFT_oneSided(:,end)/2;% Correct the energy
@@ -373,7 +374,7 @@ calculation.S1 = 1; %as we are using a rectangular windows
 results.signal1PowerSpectrum = results.signal1AbsFFT_oneSided.^2/calculation.S1^2; % According to report GH_FFT from G. Heinzel
 results.signal1AmplitudeSpectrum = sqrt(results.signal1PowerSpectrum);
 
-results.signal2FFT = fft(results.u2_2)'/system.numberOfTimePoints;
+results.signal2FFT = fft(results.u2_2).'/system.numberOfTimePoints;
 results.signal2FFT_oneSided = 2*results.signal2FFT(1:calculation.numberOfFrequencies);
 results.signal2FFT_oneSided(:,1) = results.signal2FFT_oneSided(:,1)/2;% Correct the energy
 results.signal2FFT_oneSided(:,end) = results.signal2FFT_oneSided(:,end)/2;% Correct the energy
@@ -455,11 +456,23 @@ clear('index','i','j');
 fprintf('Time taken %2.0f s.\n', toc)
 
 %% 18. Assemble the channel and reconstruct the truncated signals. (SNR thresholding)
-
 disp('18. Assemble the channel and reconstruct the truncated signals.')
 
 tic
-[results.X,~,~] = artGael([results.tSM1,results.tSM2]',[results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided]',system.maxIterationReco);
+S = [results.tSM1].';
+u = [results.tSignal1FFT_oneSided].';
+
+%S = [results.tSM1,results.tSM2].';
+%u = [results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].';
+%[results.X,~,~] = artGael([results.tSM1,results.tSM2].',[results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].',system.maxIterationReco);
+% least square solution
+lambda0 = trace(S'*S)/size(S,2);
+lambdaRela = 0.01;
+lambda = lambdaRela*lambda0;
+
+[results.X,~,~] = artGael(S'*S+lambda*eye(size(S,2)),S'*u,system.maxIterationReco);
+
+% regularized
 
 results.errorEstimate = zeros(1,system.maxIterationReco);
 % for i=1:system.maxIterationReco
@@ -469,12 +482,15 @@ results.errorEstimate = zeros(1,system.maxIterationReco);
 
 figure
 for i=1:system.maxIterationReco
-    subplot(1,2,1)
+    subplot(1,3,1)
     imagesc(phantom.shapeScaled)
     axis square
-    subplot(1,2,2)
+    subplot(1,3,2)
     res = reshape(results.X(:,i),[system.sizeXSM,system.sizeYSM]);
     imagesc(system.xSM,system.ySM,real(res));
+    axis square
+    subplot(1,3,3)
+    imagesc(system.xSM,system.ySM,imag(res));
     colormap('gray')
     axis square
     title(sprintf('i=%i',i));
