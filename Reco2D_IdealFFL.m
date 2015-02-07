@@ -4,14 +4,22 @@ close all
 %% 1. Define the access path to the required other packages.
 % This are typically the sphericalHarmonics and  ScannerDesign packages.
 disp('1. Define the access path to the required other packages.')
-addpath(genpath('.'))
-addpath(genpath('..\SphericalHarmonics\'))
-addpath(genpath('..\ScannerDesign\'))
+
+addpath(genpath(fullfile('.')))
+addpath(genpath(fullfile('..','SphericalHarmonics')))
+addpath(genpath(fullfile('..','ScannerDesign')))
 
 %% 2. Loading the scanner model.
 % It is made of at least the spherical harmonics coefficient, the radius in which they are define and the nominal current used for the coil.
 disp('2. Loading the scanner''s coil codel')
 load('IdealFFL.mat');
+
+% Scanner properties
+system.c11 = 2*Quadru_0.bc(1).coefficient(2,2)/Quadru_0.rhoReference*Quadru_0.current; % "Gradient" on the line
+system.aDx = Drive_X.bc(1).coefficient(1,1)*Drive_X.current;
+system.aDy = Drive_Y.bc(2).coefficient(1,1)*Drive_Y.current;
+fprintf('c11 %g T/m; aDx %g T; aDy %g T;\n',system.c11,system.aDx,system.aDx);
+fprintf('Drive peak translation x:%g m; y:%g m\n',system.aDx/system.c11,system.aDy/system.c11);
 
 %% 3. Define all the other system parameters.
 % The spatial resolution of the phantom and the system matrix. The used frequencies, time vector, sampling frequencies, noise parameters etc. This is highly dependent on the scanner you want to model.
@@ -124,14 +132,14 @@ fprintf('Time taken %2.0f s.\n', toc)
 disp('5. Define the time-varying amplitude applied on the different coils.')
 c1 = cos(2*pi*system.frequencyQuadrupol*calculation.time(:).');
 c2 = sin(2*pi*system.frequencyQuadrupol*calculation.time(:).');
-c3 = cos(0.5*2*pi*system.frequencyQuadrupol*calculation.time(:).');
-c4 = sin(0.5*2*pi*system.frequencyQuadrupol*calculation.time(:).');
+c3 = sin(0.5*2*pi*system.frequencyQuadrupol*calculation.time(:).');
+c4 = -cos(0.5*2*pi*system.frequencyQuadrupol*calculation.time(:).');
 c5 = sin(2*pi*system.frequencyDrive*calculation.time(:)');
 
 c1_dt = cos(2*pi*system.frequencyQuadrupol*(calculation.time(:).'+calculation.dt));
 c2_dt = sin(2*pi*system.frequencyQuadrupol*(calculation.time(:).'+calculation.dt));
-c3_dt = cos(0.5*2*pi*system.frequencyQuadrupol*(calculation.time(:).'+calculation.dt));
-c4_dt = sin(0.5*2*pi*system.frequencyQuadrupol*(calculation.time(:).'+calculation.dt));
+c3_dt = sin(0.5*2*pi*system.frequencyQuadrupol*(calculation.time(:).'+calculation.dt));
+c4_dt = -cos(0.5*2*pi*system.frequencyQuadrupol*(calculation.time(:).'+calculation.dt));
 c5_dt = sin(2*pi*system.frequencyDrive*(calculation.time(:).'+calculation.dt));
 
 system.coefSelection_Z = ones(1,system.numberOfTimePoints);
@@ -196,7 +204,7 @@ fprintf('Time taken %2.0f s.\n', toc)
 % 
 % figure
 % threshold = 3*10^-3;
-% for i=1:system.nbrPointPerDrivePeriod/20:system.numberOfTimePoints
+% for i=1:25:system.numberOfTimePoints
 %     image = reshape(Babs(i,:),[system.sizeXSM,system.sizeYSM]);
 %     imagesc(system.xSM,system.ySM,image);
 %     xlabel('x axis /m')

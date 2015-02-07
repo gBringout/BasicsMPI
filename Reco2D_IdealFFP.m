@@ -4,9 +4,9 @@ close all
 %% 1. Define the access path to the required other packages.
 % This are typically the sphericalHarmonics and  ScannerDesign packages.
 disp('1. Define the access path to the required other packages.')
-addpath(genpath('.'))
-addpath(genpath('..\SphericalHarmonics\'))
-addpath(genpath('..\ScannerDesign\'))
+addpath(genpath(fullfile('.')))
+addpath(genpath(fullfile('..','SphericalHarmonics')))
+addpath(genpath(fullfile('..','ScannerDesign')))
 
 %% 2. Loading the scanner model.
 % It is made of at least the spherical harmonics coefficient, the radius in which they are define and the nominal current used for the coil.

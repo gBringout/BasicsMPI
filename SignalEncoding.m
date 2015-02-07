@@ -6,7 +6,7 @@
 close all
 clear all
 
-addpath('coreFunctions\')
+addpath(genpath(fullfile('.')))
 
     
 mu0         = 4*pi*1e-7; % permeability of the air.
@@ -17,18 +17,18 @@ d           = 30*10^-9; % [m] diameter of the particle. From the thesis. P98.
 Ms          = 0.6/mu0; %[A/m] Magnetisation at saturation from Magnetit. From the thesis. P54
 temperature = 310;
 %signal generation and procesing
-Fs          = 25*10^6;%2.5e7; % [Hz] sampling frequency
+Fs          = 1*10^6;%2.5e7; % [Hz] sampling frequency
 fStart      = 2; % [-] staring frequency components to be displayed
-fStop       = 500; % [-] Last frequency components to be displayed. Please respect the shanon theorem :)
+fStop       = 80; % [-] Last frequency components to be displayed. Please respect the shanon theorem :)
 dt          = 1/(50*10^6); %delta used to calculate the derivative. Used to compensate the "small" sampling frequencies
 
 % MPI signal generation
 f           = 25000; % [Hz] Frequency of the signal
-nbrPeriod   = 10; % nbr of signal period
+nbrPeriod   = 4; % nbr of signal period
 time        = 0:1/Fs:nbrPeriod/f-1/Fs; % [s] time vector. Remove the last point as we start at zero.
 N           = length(time); %Number of time points
-H0          = 31831;% [A/m] Drive field amplitude (31831 A/m to generate 40 mT)
-Hoffset     = 1000;% [A/m] Offset field
+H0          = 31831/2;% [A/m] Drive field amplitude (31831 A/m to generate 40 mT)
+Hoffset     = 1000*4;% [A/m] Offset field
 B0          = H0*mu0; % [T] - H = B/mu
 
 % MPI scanner properties
@@ -40,7 +40,7 @@ s           = 1366*mu0; % [T/A] From the thesis. P98. Eq. 4.67
 % Noise model
 kB          = 1.380650424e-23; % [J/K] Boltzmann constant 
 deltaF      = 10*10^6; % [Hz] according to Weizenecker 2007 - A simulation study...
-Rp          = 185 *10^-3; % [Ohm]  according to Weizenecker 2007 - A simulation study...
+Rp          = 0.0001*185 *10^-3; % [Ohm]  according to Weizenecker 2007 - A simulation study...
 Scaling     = 1000; % To easily scale the maximal voltage induced by the noise
 %% Particle Magnetization in function of the applied magnetic field
 
@@ -105,8 +105,8 @@ title('Time signal');
 %% Spectrum
 
 subplot(2,3,6)
-periodogram = fft(u);
-uhat = abs(2*periodogram(1:(end-1)/2+1));
+periodogram = fft(u)/size(u,1);
+uhat = abs((2*periodogram(1:(end-1)/2+1)));
 Fs = 1/(time(2)-time(1));
 freq = Fs/2*linspace(0,1,length(u)/2+1);
 semilogy(freq(fStart:fStop)/f,real(uhat(fStart:fStop)), 'o');
