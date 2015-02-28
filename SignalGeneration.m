@@ -1,6 +1,6 @@
 % This example demonstrated the basic of MPI signal generation using the
 % example described in the Ph.D. Thesis from S. Biederer untitled:
-% "Entwicklung eines Spektrometers zur Analyse superparamagnetischer Eisenoxid-Nanopartikel für Magnetic-Particle-Imaging"
+% "Entwicklung eines Spektrometers zur Analyse superparamagnetischer Eisenoxid-Nanopartikel fÃ¼r Magnetic-Particle-Imaging"
 % Gael Bringout - Oct 2014
 
 close all
@@ -12,7 +12,7 @@ addpath(genpath(fullfile('.')))
 mu0         = 4*pi*1e-7; % permeability of the air.
 %particle
 c           = 0.03*0.500*1000; % [mol(Fe)/m^3] Using Resovist, with the assumption that only 3% of the iron is usefull to the signal
-v           = 10*10^-9; %[m^3] volume of the test sample (10 µl) (page 99 of the thesis)
+v           = 10*10^-9; %[m^3] volume of the test sample (10 Âµl) (page 99 of the thesis)
 d           = 30*10^-9; % [m] diameter of the particle. From the thesis. P98.
 Ms          = 0.6/mu0; %[A/m] Magnetisation at saturation from Magnetit. From the thesis. P54
 temperature = 310;
@@ -38,8 +38,8 @@ s           = 1366*mu0; % [T/A] From the thesis. P98. Eq. 4.67
 
 % Noise model
 kB          = 1.380650424e-23; % [J/K] Boltzmann constant 
-deltaF      = 10*10^6; % [Hz] according to Weizenecker 2007 - A simulation study...
-Rp          = 0.0001*185 *10^-3; % [Ohm]  according to Weizenecker 2007 - A simulation study...
+deltaF      = Fs/2; % [Hz] according to Weizenecker 2007 - A simulation study...
+Rp          = 185 *10^-3; % [Ohm]  according to Weizenecker 2007 - A simulation study...
 Scaling     = 1000; % To easily scale the maximal voltage induced by the noise
 %% Particle Magnetization in function of the applied magnetic field
 
