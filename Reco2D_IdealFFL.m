@@ -15,7 +15,7 @@ disp('2. Loading the scanner''s coil codel')
 load('IdealFFL.mat');
 
 % Scanner properties
-system.c11 = 2*Quadru_0.bc(1).coefficient(2,2)/Quadru_0.rhoReference*Quadru_0.current; % "Gradient" on the line
+system.c11 = Quadru_0.bc(1).coefficient(2,2)/Quadru_0.rhoReference*Quadru_0.current; % "Gradient" on the line
 system.aDx = Drive_X.bc(1).coefficient(1,1)*Drive_X.current;
 system.aDy = Drive_Y.bc(2).coefficient(1,1)*Drive_Y.current;
 fprintf('c11 %g T/m; aDx %g T; aDy %g T;\n',system.c11,system.aDx,system.aDx);
@@ -81,11 +81,11 @@ noise.maxAmplitude = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp);
 noise.maxAmplitudeSM = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp)/30; % To simulate the fact that we can average the system matric 
 
 % Reconstruction related parameters
-system.SNRLimits = 6; % choosen alsmost arbitrarly
+system.SNRLimits = 8; % choosen alsmost arbitrarly
 system.maxIterationReco = 20; % choosen alsmost arbitrarly
 
 % defining the geometry of the Field of View
-system.xSM = -0.0100:calculation.dxSM:0.0100; %The resolution have to be limited in order to be able to reconstruct
+system.xSM = -0.0090:calculation.dxSM:0.0090; %The resolution have to be limited in order to be able to reconstruct
 system.ySM = -0.0100:calculation.dySM:0.0100;
 system.zSM = 0:calculation.dzSM:0;
 system.xPH = -0.0100:calculation.dxPH:0.0100;
@@ -202,18 +202,26 @@ fprintf('Time taken %2.0f s.\n', toc)
 %% 7. The magnetic flux-density can be displayed in a 2D plane for all time t,
 % to check your MPI-signal generating volume's shape
 % 
-% figure
-% threshold = 3*10^-3;
-% for i=1:25:system.numberOfTimePoints
-%     image = reshape(Babs(i,:),[system.sizeXSM,system.sizeYSM]);
-%     imagesc(system.xSM,system.ySM,image);
-%     xlabel('x axis /m')
-%     ylabel('y axis /m')
-%     axis square
-%     caxis([-threshold threshold]);
-%     pause(1/25)
-%     %title(sprintf('Magnetic field density /T. Time %3.3f ms',calculation.time(i)*1000))
-% end
+figure
+threshold = [1 2 3]*10^-3;
+for i=1:25:system.numberOfTimePoints/2
+    image = reshape(Babs(i,:),[system.sizeXSM,system.sizeYSM])';
+    for j=1:size(threshold,2)
+        [C,h] = contour(system.xSM,system.ySM,image,[threshold(j) threshold(j)]);
+        set(h,'LineWidth',2);
+        hold all;
+    end
+    hold off
+    %imagesc(system.xSM,system.ySM,image);
+    xlabel('x axis /m')
+    ylabel('y axis /m')
+    axis square
+    set(gca,'YDir','normal');
+    legend('1 mT','2 mT','3 mT')
+    %caxis([-threshold threshold]);
+    pause(1/25)
+    %title(sprintf('Magnetic field density /T. Time %3.3f ms',calculation.time(i)*1000))
+end
 
 %% 8. Calculate the time-varying magnetization for each point in space for the SM.
 % Often using the Langevin model. 
@@ -423,9 +431,6 @@ results.signal2AbsFFT_oneSided = abs(results.signal2FFT_oneSided);
 results.signal2PowerSpectrum = results.signal2AbsFFT_oneSided.^2/calculation.S1^2; % According to report GH_FFT from G. Heinzel
 results.signal2AmplitudeSpectrum = sqrt(results.signal2PowerSpectrum);
 
-
-
-
 %% 16. Calculate the SNR.
 disp('16. Calculate the SNR.')
 noise.uNoise = zeros(system.numberOfTimePoints,1);
@@ -501,24 +506,18 @@ fprintf('Time taken %2.0f s.\n', toc)
 disp('18. Assemble the channel and reconstruct the truncated signals.')
 tic
 
+system.maxIterationReco = 100;
+
 S = [results.tSM1,results.tSM2].';
 u = [results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].';
-%[results.X,~,~] = artGael([results.tSM1,results.tSM2].',[results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].',system.maxIterationReco);
-% least square solution
-lambda0 = trace(S'*S)/size(S,2);
-lambdaRela = 0.01;
-lambda = lambdaRela*lambda0;
+[results.X,~,~] = artGael([results.tSM1,results.tSM2].',[results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].',system.maxIterationReco);
 
-[results.X,~,~] = artGael(S'*S+lambda*eye(size(S,2)),S'*u,system.maxIterationReco);
+% least square solution
+% lambda0 = trace(S'*S)/size(S,2);
+% lambdaRela = 0.01;
+% lambda = lambdaRela*lambda0;
 % 
-% tic
-% [results.X,~,~] = artGael([results.tSM1,results.tSM2].',[results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].',system.maxIterationReco);
-% 
-% results.errorEstimate = zeros(1,system.maxIterationReco);
-% % for i=1:system.maxIterationReco
-% %     res = reshape(results.X(:,i),[system.sizeXSM,system.sizeYSM]);
-% %     results.errorEstimate(i) = sum(sum(sqrt((phantom.shapeScaled-res).^2)));
-% % end
+% [results.X,~,~] = artGael(S'*S+lambda*eye(size(S,2)),S'*u,system.maxIterationReco);
 
 figure
 for i=1:system.maxIterationReco
@@ -553,7 +552,7 @@ subplot(3,1,2)
 plot(calculation.time*1000,results.u1_2)
 xlabel('Time / ms')
 ylabel('Voltage amplitude / V')
-title('Induced voltage in the x canal.')
+title('Induced voltage in the x canal by the particles only.')
 
 subplot(3,1,3)
 stem(system.freq/system.frequencyDrive,results.signal1SNR,'Marker','None')
@@ -564,29 +563,8 @@ set(gca,'yscal','log')
 xlabel('# Harmonic')
 ylabel('SNR')
 title('SNR (based on the amplitude spectrum)')
-xlim([0 21])
-%ylim([1 10^2]);%std(signalSNR)])
-
-figure('Name','SM 1 - real part of the first frequency components')
-freqWithEnergie = [248,250,252,254,499,501,503,748,750,752,754];
-maxSM = zeros(1,size(freqWithEnergie,2));
-for i=1:size(freqWithEnergie,2)
-    subplot(2,11,i)
-    results.SM1_oneSided = 2*results.SM1(:,freqWithEnergie(i));
-    results.SM1_oneSided(1) = results.SM1(1,freqWithEnergie(i));
-    res = reshape(real(results.SM1_oneSided(:)),[system.sizeXSM,system.sizeYSM]);
-    imagesc(system.xSM,system.ySM,res);
-    maxSM(i) = max(max(abs(results.SM1_oneSided(:))));
-    axis square
-    set(gca, 'XTickLabel', [],'XTick',[])
-    set(gca, 'YTickLabel', [],'YTick',[])
-    title(sprintf('%i',freqWithEnergie(i)))
-    colormap('gray')
-end
-subplot(2,11,12:22)
-stem(results.signal1SNR,'Marker','None')
-set(gca,'yscal','log')
-xlim([1 1000]);
+xlim([0 10])
+ylim([1 10^3]);
 
 figure('Name','SM 1 - absolute value of the first frequency components')
 freqWithEnergie = [248,250,252,254,499,501,503,748,750,752,754];
@@ -607,15 +585,20 @@ end
 subplot(2,11,12:22)
 stem(results.signal1SNR,'Marker','None')
 set(gca,'yscal','log')
+xlabel('Frequency Components')
+ylabel('SNR')
+title('SNR (based on the amplitude spectrum)')
+xlim([0 10])
+ylim([1 10^3]);
 xlim([1 1000]);
 
-figure('Name','SM 2 - real part of the first frequency components')
+figure('Name','SM 2 - absolute value of the first frequency components')
 freqWithEnergie = [248,250,252,254,499,501,503,748,750,752,754];
 for i=1:size(freqWithEnergie,2)
     subplot(2,11,i)
     results.SM2_oneSided = 2*results.SM2(:,freqWithEnergie(i));
     results.SM2_oneSided(1) = results.SM2(1,freqWithEnergie(i));
-    res = reshape(real(results.SM2_oneSided(:)),[system.sizeXSM,system.sizeYSM]);
+    res = reshape(abs(results.SM2_oneSided(:)),[system.sizeXSM,system.sizeYSM]);
     imagesc(system.xSM,system.ySM,res);
     maxSM(i) = max(max(abs(results.SM2_oneSided(:))));
     axis square
@@ -627,17 +610,11 @@ end
 subplot(2,11,12:22)
 stem(results.signal2SNR,'Marker','None')
 set(gca,'yscal','log')
+xlabel('Frequency Components')
+ylabel('SNR')
+title('SNR (based on the amplitude spectrum)')
+xlim([0 10])
+ylim([1 10^3]);
 xlim([1 1000]);
-
-figure('Name','Reco')
-% we assume that the best reco is the last one
-res = reshape(results.X(:,system.maxIterationReco),[system.sizeXSM,system.sizeYSM]);
-imagesc(system.xSM,system.ySM,real(res));
-colormap('gray')
-axis square
-hold all
-title(sprintf('Reconstructed image at iteration %i - SNR > %i',i,system.SNRLimits));
-xlabel('x axis / m');
-ylabel('y axis / m');
 
 clear('freqIndex','maxSM','i','res')

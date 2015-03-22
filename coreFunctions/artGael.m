@@ -44,9 +44,9 @@ for j=1:k
        if x(p)<0
            x(p) = 0;
        end
-       if imag(x(p))~=0
-           x(p) = real(x(p));
-       end
+       %if imag(x(p))~=0
+       %    x(p) = real(x(p));
+       %end
    end
    X(:,j) = x;
    
