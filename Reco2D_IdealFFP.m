@@ -21,9 +21,9 @@ disp('3. Define all the other system parameters.')
 % The resolution used for the SM and the phantom have to be different
 % This is done to avoid the 'Inverse Crime'. See "Introduction into MPI"
 % Knopp & Buzug 2011 p140 §5.4.4
-calculation.dxSM = 1*10^-3/2; % [m] size of a voxel in the x direction
-calculation.dySM = 1*10^-3/2; % [m] size of a voxel in the y direction
-calculation.dzSM = 1*10^-3/2; % [m] size of a voxel in the z direction
+calculation.dxSM = 0.6*10^-3; % [m] size of a voxel in the x direction
+calculation.dySM = 0.6*10^-3; % [m] size of a voxel in the y direction
+calculation.dzSM = 0.6*10^-3; % [m] size of a voxel in the z direction
 calculation.dxPH = calculation.dxSM/1.3; % [m] size of a voxel in the x direction
 calculation.dyPH = calculation.dySM/1.3; % [m] size of a voxel in the y direction
 calculation.dzPH = calculation.dzSM; % [m] size of a voxel in the z direction
@@ -40,7 +40,7 @@ system.nbrPeriods = 1; % If we want to make more periods of a full acquisition
 system.samplingFrequency = 6e6; %[Hz] Sampling Frequency of the acquisition Board.
 %Maximal and minimal frequencies in the spectrum
 system.fSMmin = 45000; % to remove the first harmonics and related distortion around it
-system.fSMmax = 500000; % to keep the memory usage low
+system.fSMmax = system.samplingFrequency/2; % to keep the memory usage low
 
 system.timeLength = system.nbrPeriods*(lcm(system.freqDivider(1), system.freqDivider(2))/system.baseFrequency); % [s] Time needed to make a complete 2D trajectorie
 system.numberOfTimePoints  = system.timeLength*system.samplingFrequency; % This should be an even integer.
@@ -71,7 +71,7 @@ calculation.kB  = 1.380650424e-23;
 noise.Rp = 185*10^-3; % [Ohm]  according to Weizenecker 2007 - A simulation study...
 noise.T = 310; % [K]
 noise.deltaF = system.samplingFrequency/2; % [Hz]
-noise.maxAmplitude = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp);
+noise.maxAmplitude = 10*sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp);
 noise.maxAmplitudeSM = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp)/30; % To simulate the fact that we can average the system matric 
 
 % Reconstruction related parameters
@@ -80,11 +80,11 @@ system.maxIterationReco = 20; % choosen alsmost arbitrarly
 
 % defining the geometry of the Field of View
 %0.0100:0.0100
-system.xSM = -0.0100:calculation.dxSM:0.0100; %The resolution have to be limited in order to be able to reconstruct
-system.ySM = -0.0100:calculation.dySM:0.0100;
+system.xSM = -0.0081:calculation.dxSM:0.0081; %The resolution have to be limited in order to be able to reconstruct
+system.ySM = -0.0099:calculation.dySM:0.0099;
 system.zSM = 0:calculation.dzSM:0;
-system.xPH = -0.0100:calculation.dxPH:0.0100;
-system.yPH = -0.0100:calculation.dyPH:0.0100;
+system.xPH = -0.0081:calculation.dxPH:0.0081;
+system.yPH = -0.0099:calculation.dyPH:0.0099;
 system.zPH = 0:calculation.dzPH:0;
 
 %Size of the matrix
@@ -243,7 +243,7 @@ disp('10. Make the phantom.')
 phantom.shape = [system.sizeXPH system.sizeYPH system.sizeZPH];
 phantom.particleDiameter = system.particleDiameter;
 phantom.concentrationPartiMax =  system.concentrationPartiMax;
-phantom.shapeScaled = createResolutionPhantomGael4(phantom.shape, 8);
+phantom.shapeScaled = createResolutionPhantomGael4(phantom.shape, 4);
 
 %Make sure of the scaling of the phantom
 phantom.shapeScaled = phantom.shapeScaled/max(phantom.shapeScaled(:));
@@ -459,26 +459,16 @@ fprintf('Time taken %2.0f s.\n', toc)
 disp('18. Assemble the channel and reconstruct the truncated signals.')
 
 tic
-S = [results.tSM1].';
-u = [results.tSignal1FFT_oneSided].';
+S = [results.tSM1,results.tSM2].';
+u = [results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].';
+%[results.X,~,~] = artGael(S,u,system.maxIterationReco);
 
-%S = [results.tSM1,results.tSM2].';
-%u = [results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].';
-%[results.X,~,~] = artGael([results.tSM1,results.tSM2].',[results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].',system.maxIterationReco);
 % least square solution
 lambda0 = trace(S'*S)/size(S,2);
 lambdaRela = 0.01;
 lambda = lambdaRela*lambda0;
 
 [results.X,~,~] = artGael(S'*S+lambda*eye(size(S,2)),S'*u,system.maxIterationReco);
-
-% regularized
-
-results.errorEstimate = zeros(1,system.maxIterationReco);
-% for i=1:system.maxIterationReco
-%     res = reshape(results.X(:,i),[system.sizeXSM,system.sizeYSM]);
-%     results.errorEstimate(i) = sum(sum(sqrt((phantom.shapeScaled-res).^2)));
-% end
 
 figure
 for i=1:system.maxIterationReco
@@ -491,9 +481,9 @@ for i=1:system.maxIterationReco
     axis square
     subplot(1,3,3)
     imagesc(system.xSM,system.ySM,imag(res));
-    colormap('gray')
     axis square
     title(sprintf('i=%i',i));
+    colormap('gray')
     pause(1/25)
 end
 
@@ -501,10 +491,10 @@ clear('res')
 fprintf('Time taken %2.0f s.\n', toc)
 
 %% Figure
-disp('display the results')
+% disp('display the results')
 figure('Name','Signal')
 
-subplot(3,1,1)
+subplot(5,1,1)
 hold all
 plot(calculation.time*1000,system.coefDrive_X*Drive_X.current)
 plot(calculation.time*1000,system.coefDrive_Y*Drive_Y.current)
@@ -512,13 +502,21 @@ xlabel('Time / ms')
 ylabel('Current amplitude / A')
 title('Drive fields current')
 
-subplot(3,1,2)
+subplot(5,1,2)
 plot(calculation.time*1000,results.u1_2)
 xlabel('Time / ms')
 ylabel('Voltage amplitude / V')
 title('Induced voltage in the x canal.')
+ylim([-2*10^-5 2*10^-5])
 
-subplot(3,1,3)
+subplot(5,1,3)
+plot(calculation.time*1000,results.u2_2)
+xlabel('Time / ms')
+ylabel('Voltage amplitude / V')
+title('Induced voltage in the x canal.')
+ylim([-2*10^-5 2*10^-5])
+
+subplot(5,1,4)
 stem(system.freq/system.frequencyDrive1,results.signal1SNR,'Marker','None')
 set(gca,'yscal','log')
 hold all
@@ -530,6 +528,18 @@ title('SNR (based on the amplitude spectrum)')
 xlim([0 21])
 %ylim([1 10^2]);%std(signalSNR)])
 
+subplot(5,1,5)
+stem(system.freq/system.frequencyDrive2,results.signal2SNR,'Marker','None')
+set(gca,'yscal','log')
+hold all
+stem(results.tFreq2/system.frequencyDrive2,results.tSNR2,'Marker','None')
+set(gca,'yscal','log')
+xlabel('# Harmonic')
+ylabel('SNR')
+title('SNR (based on the amplitude spectrum)')
+xlim([0 21])
+
+
 figure('Name','SM 1 - real part of the first frequency components')
 maxSM = zeros(1,100);
 for i=2:100
@@ -539,6 +549,24 @@ for i=2:100
     res = reshape(real(results.SM_oneSided(:)),[system.sizeXSM,system.sizeYSM]);
     imagesc(system.xSM,system.ySM,res);
     maxSM(i) = max(max(abs(results.SM_oneSided(:))));
+    axis square
+    set(gca, 'XTickLabel', [],'XTick',[])
+    set(gca, 'YTickLabel', [],'YTick',[])
+    title(sprintf('%i',i-1))
+    colormap('gray')
+end
+subplot(10,10,1)
+plot(maxSM/max(maxSM))
+
+figure('Name','SM 1 - imag part of the first frequency components')
+maxSM = zeros(1,100);
+for i=2:100
+    subplot(10,10,i)
+    results.SM_oneSided = 2*results.SM1(:,i);
+    results.SM_oneSided(1) = results.SM1(1,i);
+    res = reshape(imag(results.SM_oneSided(:)),[system.sizeXSM,system.sizeYSM]);
+    imagesc(system.xSM,system.ySM,res);
+    maxSM(i) = max(max(imag(results.SM_oneSided(:))));
     axis square
     set(gca, 'XTickLabel', [],'XTick',[])
     set(gca, 'YTickLabel', [],'YTick',[])
@@ -566,12 +594,12 @@ end
 subplot(10,10,1)
 plot(maxSM/max(maxSM))
 
-figure('Name','SM 2 - real part of the first frequency components')
+figure('Name','SM 2 - absolute value of the first frequency components')
 for i=2:100
     subplot(10,10,i)
     results.SM2_oneSided = 2*results.SM2(:,i);
     results.SM2_oneSided(1) = results.SM2(1,i);
-    res = reshape(real(results.SM2_oneSided(:)),[system.sizeXSM,system.sizeYSM]);
+    res = reshape(abs(results.SM2_oneSided(:)),[system.sizeXSM,system.sizeYSM]);
     imagesc(system.xSM,system.ySM,res);
     maxSM(i) = max(max(abs(results.SM2_oneSided(:))));
     axis square
