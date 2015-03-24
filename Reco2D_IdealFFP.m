@@ -67,12 +67,14 @@ system.concentrationPartiMax = 0.03*0.5*1000/10;% [mol/m^3] 3% of "good" particl
 system.volumeSample = calculation.dxSM*calculation.dySM*calculation.dzSM; % [m^3] volume of a voxel
 
 % We use the noise model Weiznecker 2007
+noise.multiplier = 1;
 calculation.kB  = 1.380650424e-23;
-noise.Rp = 185*10^-3; % [Ohm]  according to Weizenecker 2007 - A simulation study...
+noise.Rp = 185*10^-6; % [Ohm]  according to Weizenecker 2007 - A simulation study...
 noise.T = 310; % [K]
 noise.deltaF = system.samplingFrequency/2; % [Hz]
-noise.maxAmplitude = 10*sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp);
-noise.maxAmplitudeSM = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp)/30; % To simulate the fact that we can average the system matric 
+noise.maxAmplitude = noise.multiplier*sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp);
+noise.ASD = noise.multiplier*sqrt(4*calculation.kB*noise.T*noise.Rp);
+noise.maxAmplitudeSM = noise.multiplier*sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp)/30; % To simulate the fact that we can average the system matrix , we reduce by a factor 30 the noise in the SM
 
 % Reconstruction related parameters
 system.SNRLimits = 6; % choosen alsmost arbitrarly
@@ -461,14 +463,14 @@ disp('18. Assemble the channel and reconstruct the truncated signals.')
 tic
 S = [results.tSM1,results.tSM2].';
 u = [results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].';
-%[results.X,~,~] = artGael(S,u,system.maxIterationReco);
+%[results.C,~,~] = artGael(S,u,system.maxIterationReco);
 
 % least square solution
 lambda0 = trace(S'*S)/size(S,2);
 lambdaRela = 0.01;
 lambda = lambdaRela*lambda0;
 
-[results.X,~,~] = artGael(S'*S+lambda*eye(size(S,2)),S'*u,system.maxIterationReco);
+[results.C,~,~] = artGael(S'*S+lambda*eye(size(S,2)),S'*u,system.maxIterationReco);
 
 figure
 for i=1:system.maxIterationReco
@@ -476,13 +478,13 @@ for i=1:system.maxIterationReco
     imagesc(phantom.shapeScaled)
     axis square
     subplot(1,3,2)
-    res = reshape(results.X(:,i),[system.sizeXSM,system.sizeYSM]);
+    res = reshape(results.C(:,i),[system.sizeXSM,system.sizeYSM]);
     imagesc(system.xSM,system.ySM,real(res));
     axis square
     subplot(1,3,3)
     imagesc(system.xSM,system.ySM,imag(res));
     axis square
-    title(sprintf('i=%i',i));
+    title(sprintf('i=%i. #FC=%i',i,size(S,1)));
     colormap('gray')
     pause(1/25)
 end
@@ -491,6 +493,7 @@ clear('res')
 fprintf('Time taken %2.0f s.\n', toc)
 
 %% Figure
+ssddff
 % disp('display the results')
 figure('Name','Signal')
 
@@ -613,7 +616,7 @@ plot(maxSM/max(maxSM))
 
 figure('Name','Reco')
 % we assume that the best reco is the last one
-res = reshape(results.X(:,system.maxIterationReco),[system.sizeXSM,system.sizeYSM]);
+res = reshape(results.C(:,system.maxIterationReco),[system.sizeXSM,system.sizeYSM]);
 imagesc(system.xSM,system.ySM,real(res));
 colormap('gray')
 axis square
