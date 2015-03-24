@@ -73,12 +73,14 @@ system.concentrationPartiMax = 0.03*0.5*1000/10;% [mol/m^3] 3% of "good" particl
 system.volumeSample = calculation.dxSM*calculation.dySM*calculation.dzSM; % [m^3] volume of a voxel
 
 % We use the noise model Weiznecker 2007
+noise.multiplier = 10;
 calculation.kB  = 1.380650424e-23;
-noise.Rp = 185*10^-3; % [Ohm]  according to Weizenecker 2007 - A simulation study...
+noise.Rp = 185*10^-6; % [Ohm]  according to Weizenecker 2007 - A simulation study...
 noise.T = 310; % [K]
 noise.deltaF = system.samplingFrequency/2; % [Hz]
-noise.maxAmplitude = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp);
-noise.maxAmplitudeSM = sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp)/30; % To simulate the fact that we can average the system matric 
+noise.maxAmplitude = noise.multiplier*sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp);
+noise.ASD = noise.multiplier*sqrt(4*calculation.kB*noise.T*noise.Rp);
+noise.maxAmplitudeSM = noise.multiplier*sqrt(4*calculation.kB*noise.T*noise.deltaF*noise.Rp)/30; % To simulate the fact that we can average the system matrix , we reduce by a factor 30 the noise in the SM
 
 % Reconstruction related parameters
 system.SNRLimits = 8; % choosen alsmost arbitrarly
@@ -202,26 +204,26 @@ fprintf('Time taken %2.0f s.\n', toc)
 %% 7. The magnetic flux-density can be displayed in a 2D plane for all time t,
 % to check your MPI-signal generating volume's shape
 % 
-figure
-threshold = [1 2 3]*10^-3;
-for i=1:25:system.numberOfTimePoints/2
-    image = reshape(Babs(i,:),[system.sizeXSM,system.sizeYSM])';
-    for j=1:size(threshold,2)
-        [C,h] = contour(system.xSM,system.ySM,image,[threshold(j) threshold(j)]);
-        set(h,'LineWidth',2);
-        hold all;
-    end
-    hold off
-    %imagesc(system.xSM,system.ySM,image);
-    xlabel('x axis /m')
-    ylabel('y axis /m')
-    axis square
-    set(gca,'YDir','normal');
-    legend('1 mT','2 mT','3 mT')
-    %caxis([-threshold threshold]);
-    pause(1/25)
-    %title(sprintf('Magnetic field density /T. Time %3.3f ms',calculation.time(i)*1000))
-end
+% figure
+% threshold = [1 2 3]*10^-3;
+% for i=1:13:system.numberOfTimePoints/2
+%     image = reshape(Babs(i,:),[system.sizeXSM,system.sizeYSM])';
+%     for j=1:size(threshold,2)
+%         [C,h] = contour(system.xSM,system.ySM,image,[threshold(j) threshold(j)]);
+%         set(h,'LineWidth',2);
+%         hold all;
+%     end
+%     hold off
+%     %imagesc(system.xSM,system.ySM,image);
+%     xlabel('x axis /m')
+%     ylabel('y axis /m')
+%     axis square
+%     set(gca,'YDir','normal');
+%     legend('1 mT','2 mT','3 mT')
+%     %caxis([-threshold threshold]);
+%     title(sprintf('|B| /T. Time %3.3f ms',calculation.time(i)*1000))
+%     pause(1/100)
+% end
 
 %% 8. Calculate the time-varying magnetization for each point in space for the SM.
 % Often using the Langevin model. 
@@ -311,7 +313,7 @@ disp('10. Make the phantom.')
 phantom.shape = [system.sizeXPH system.sizeYPH system.sizeZPH];
 phantom.particleDiameter = system.particleDiameter;
 phantom.concentrationPartiMax =  system.concentrationPartiMax;
-phantom.shapeScaled = createResolutionPhantomGael4(phantom.shape, 8);
+phantom.shapeScaled = createResolutionPhantomGael4(phantom.shape, 4);
 
 %Make sure of the scaling of the phantom
 phantom.shapeScaled = phantom.shapeScaled/max(phantom.shapeScaled(:));
@@ -467,7 +469,7 @@ results.signal2AmplitudeSpectrum = sqrt(results.signal2PowerSpectrum);
 
 figure('Name','Signal')
 
-subplot(3,1,1)
+subplot(5,1,1)
 hold all
 plot(calculation.time*1000,system.coefDrive_X*Drive_X.current)
 plot(calculation.time*1000,system.coefDrive_Y*Drive_Y.current)
@@ -475,17 +477,45 @@ xlabel('Time / ms')
 ylabel('Current amplitude / A')
 title('Drive fields current')
 
-subplot(3,1,2)
+subplot(5,1,2)
 plot(calculation.time*1000,results.u1_2)
 xlabel('Time / ms')
 ylabel('Voltage amplitude / V')
 title('Induced voltage in the x canal by the particles only.')
 
-subplot(3,1,3)
+subplot(5,1,3)
 plot(calculation.time*1000,results.u2_2)
 xlabel('Time / ms')
 ylabel('Voltage amplitude / V')
 title('Induced voltage in the y canal by the particles only.')
+
+%find the fDx
+[v c] = min(abs(system.freq-system.frequencyDrive));
+firstharmonicIndex = c;
+distanceBetweenharmonics = c-1;
+nbrHarmonicsRemoved = 0.5;
+nbrcolum = size(results.signal1FFT,2);
+
+results.signal1FilteredFFT  = fft(results.u1_2).'/system.numberOfTimePoints;
+results.signal1FilteredFFT(1:(firstharmonicIndex+nbrHarmonicsRemoved*distanceBetweenharmonics))=0;
+results.signal1FilteredFFT(nbrcolum-distanceBetweenharmonics-nbrHarmonicsRemoved*distanceBetweenharmonics+1:nbrcolum)=0;
+
+results.signal2FilteredFFT  = fft(results.u2_2).'/system.numberOfTimePoints;
+results.signal2FilteredFFT(1:(firstharmonicIndex+nbrHarmonicsRemoved*distanceBetweenharmonics))=0;
+results.signal2FilteredFFT(nbrcolum-distanceBetweenharmonics-nbrHarmonicsRemoved*distanceBetweenharmonics+1:nbrcolum)=0;
+
+subplot(5,1,4)
+plot(calculation.time*1000,ifft(results.signal1FilteredFFT))
+xlabel('Time / ms')
+ylabel('Voltage /?')
+title('Induced voltage in the x canal (signal filtered up to 1.5 f_D)')
+
+
+subplot(5,1,5)
+plot(calculation.time*1000,ifft(results.signal2FilteredFFT))
+xlabel('Time / ms')
+ylabel('Voltage /?')
+title('Induced voltage in the x canal (signal filtered up to 1.5 f_D)')
 
 %% 16. Calculate the SNR.
 disp('16. Calculate the SNR.')
@@ -588,17 +618,16 @@ ylim([1 10^3]);
 disp('18. Assemble the channel and reconstruct the truncated signals.')
 tic
 
-system.maxIterationReco = 10;
-
 S = [results.tSM1,results.tSM2].';
 u = [results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].';
-[results.X,~,~] = artGael([results.tSM1,results.tSM2].',[results.tSignal1FFT_oneSided,results.tSignal2FFT_oneSided].',system.maxIterationReco);
+[results.C,~,~] = artGael(S,u,system.maxIterationReco);
+
 % least square solution
 % lambda0 = trace(S'*S)/size(S,2);
-% lambdaRela = 0.01;
+% lambdaRela = 0.1;
 % lambda = lambdaRela*lambda0;
 % 
-% [results.X,~,~] = artGael(S'*S+lambda*eye(size(S,2)),S'*u,system.maxIterationReco);
+% [results.C,~,~] = artGael(S'*S+lambda*eye(size(S,2)),S'*u,system.maxIterationReco);
 
 figure
 for i=1:system.maxIterationReco
@@ -606,7 +635,7 @@ for i=1:system.maxIterationReco
     imagesc(phantom.shapeScaled)
     axis square
     subplot(1,2,2)
-    res = reshape(results.X(:,i),[system.sizeXSM,system.sizeYSM]);
+    res = reshape(results.C(:,i),[system.sizeXSM,system.sizeYSM]);
     imagesc(system.xSM,system.ySM,real(res));
     colormap('gray')
     axis square
