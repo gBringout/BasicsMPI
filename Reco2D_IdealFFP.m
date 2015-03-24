@@ -493,7 +493,6 @@ clear('res')
 fprintf('Time taken %2.0f s.\n', toc)
 
 %% Figure
-ssddff
 % disp('display the results')
 figure('Name','Signal')
 
