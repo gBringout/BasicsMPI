@@ -313,7 +313,7 @@ disp('10. Make the phantom.')
 phantom.shape = [system.sizeXPH system.sizeYPH system.sizeZPH];
 phantom.particleDiameter = system.particleDiameter;
 phantom.concentrationPartiMax =  system.concentrationPartiMax;
-phantom.shapeScaled = createResolutionPhantomGael4(phantom.shape, 4);
+phantom.shapeScaled = createResolutionPhantomGael4(phantom.shape, 8);
 
 %Make sure of the scaling of the phantom
 phantom.shapeScaled = phantom.shapeScaled/max(phantom.shapeScaled(:));
