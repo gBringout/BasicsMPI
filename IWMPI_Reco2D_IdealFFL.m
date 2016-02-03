@@ -225,24 +225,24 @@ fprintf('Time taken %2.0f s.\n', toc)
 %     pause(1/100)
 % end
 
-%% 8. Calculate the time-varying magnetization for each point in space for the SM.
+%% 8. Calculate the time-varying magnetic moment for each point in space for the SM.
 % Often using the Langevin model. 
 % Note that the magnetic flux density matrix are used to stored the 
 % obtained values, in order to save memory. If you have enough memory on 
-% your system, you can of-course save the magnetization in another matrix.
+% your system, you can of-course save the magnetic moment in another matrix.
 
-disp('8. Calculate the time-varying magnetization for each point in space for the SM.')
+disp('8. Calculate the time-varying magnetic moment for each point in space for the SM.')
 tic
 for i=1:system.numberOfTimePoints,
     [Bx(i,:),By(i,:),Bz(i,:)] = langevinParticle4(Bx(i,:),By(i,:),Bz(i,:),Babs(i,:),system.particleDiameter,system.MsatSinglePart,system.Tempe,system.concentrationPartiMax,system.volumeSample);
     [Bx_dt(i,:),By_dt(i,:),Bz_dt(i,:)] = langevinParticle4(Bx_dt(i,:),By_dt(i,:),Bz_dt(i,:),Babs_dt(i,:),system.particleDiameter,system.MsatSinglePart,system.Tempe,system.concentrationPartiMax,system.volumeSample);
 end
-Mx = Bx;
-My = By;
-Mz = Bz;
-Mx_dt = Bx_dt;
-My_dt = By_dt;
-Mz_dt = Bz_dt;
+mx = Bx;
+my = By;
+mz = Bz;
+mx_dt = Bx_dt;
+my_dt = By_dt;
+mz_dt = Bz_dt;
 clear('Bx','By','Bz','Babs','Bx_dt','By_dt','Bz_dt','Babs_dt')
 fprintf('Time taken %2.0f s.\n', toc)
 
@@ -254,11 +254,11 @@ u1=zeros(system.numberOfTimePoints,system.sizeXSM*system.sizeYSM*system.sizeZSM)
 u2=zeros(system.numberOfTimePoints,system.sizeXSM*system.sizeYSM*system.sizeZSM);
 
 for i=1:system.numberOfTimePoints
-    u1(i,:) = ((calculation.s1x.*(Mx_dt(i,:)-Mx(i,:))/calculation.dt)+(calculation.s1y.*(My_dt(i,:)-My(i,:))/calculation.dt)+(calculation.s1z.*(Mz_dt(i,:)-Mz(i,:))/calculation.dt)) + normrnd(0,noise.maxAmplitudeSM);
-    u2(i,:) = ((calculation.s2x.*(Mx_dt(i,:)-Mx(i,:))/calculation.dt)+(calculation.s2y.*(My_dt(i,:)-My(i,:))/calculation.dt)+(calculation.s2z.*(Mz_dt(i,:)-Mz(i,:))/calculation.dt)) + normrnd(0,noise.maxAmplitudeSM);
+    u1(i,:) = ((calculation.s1x.*(mx_dt(i,:)-mx(i,:))/calculation.dt)+(calculation.s1y.*(my_dt(i,:)-my(i,:))/calculation.dt)+(calculation.s1z.*(mz_dt(i,:)-mz(i,:))/calculation.dt)) + normrnd(0,noise.maxAmplitudeSM);
+    u2(i,:) = ((calculation.s2x.*(mx_dt(i,:)-mx(i,:))/calculation.dt)+(calculation.s2y.*(my_dt(i,:)-my(i,:))/calculation.dt)+(calculation.s2z.*(mz_dt(i,:)-mz(i,:))/calculation.dt)) + normrnd(0,noise.maxAmplitudeSM);
 end
 
-clear('results','Mx','My','Mz','Mx_dt','My_dt','Mz_dt')
+clear('results','mx','my','mz','mx_dt','my_dt','mz_dt')
 results.SM1 = fft(u1).'/system.numberOfTimePoints; % we take the FFT
 results.SM1 = 2*results.SM1(:,1:calculation.numberOfFrequencies);% and use the one sided part
 results.SM1(:,1) = results.SM1(:,1)/2;% Correct the energy
@@ -400,38 +400,38 @@ clear('c1','c2','c3','c4','c5','c1_dt','c2_dt','c3_dt','c4_dt','c5_dt')
 fprintf('Time taken %2.0f s.\n', toc)
 
 
-%% 13. Calculate the time-varying magnetization for the phantom measurment.
+%% 13. Calculate the time-varying magnetic moment for the phantom measurment.
 % Often using the Langevin model. 
 % Note that the magnetic flux density matrix are used to stored the 
 % obtained values, in order to save memory. If you have enough memory on 
-% your system, you can of-course save the magnetization in another matrix.
+% your system, you can of-course save the magnetic moment in another matrix.
 
-disp('13. Calculate the time-varying magnetization for each point of the phantom.')
+disp('13. Calculate the time-varying magnetic moment for each point of the phantom.')
 tic
 for i=1:system.numberOfTimePoints,
     [Bx(i,:),By(i,:),Bz(i,:)] = langevinParticle4(Bx(i,:),By(i,:),Bz(i,:),Babs(i,:),phantom.particleDiameter,phantom.MsatSinglePart,system.Tempe,phantom.concentrationPartiMax,phantom.volumeSample);
     [Bx_dt(i,:),By_dt(i,:),Bz_dt(i,:)] = langevinParticle4(Bx_dt(i,:),By_dt(i,:),Bz_dt(i,:),Babs_dt(i,:),phantom.particleDiameter,phantom.MsatSinglePart,system.Tempe,phantom.concentrationPartiMax,phantom.volumeSample);
 end
-Mx = Bx;
-My = By;
-Mz = Bz;
-Mx_dt = Bx_dt;
-My_dt = By_dt;
-Mz_dt = Bz_dt;
+mx = Bx;
+my = By;
+mz = Bz;
+mx_dt = Bx_dt;
+my_dt = By_dt;
+mz_dt = Bz_dt;
 clear('Bx','By','Bz','Babs','Bx_dt','By_dt','Bz_dt','Babs_dt')
 fprintf('Time taken %2.0f s.\n', toc)
 
-%% 14. Multiplying the time-varying magnetization for each point of the 
+%% 14. Multiplying the time-varying magnetic moment for each point of the 
 % phantom with the phantom's tracer concentration.
-disp('14. Multiplying the time-varying magnetization for each point of the phantom with the phantom''s tracer concentration.');
+disp('14. Multiplying the time-varying magnetic moment for each point of the phantom with the phantom''s tracer concentration.');
 tic
 for i=1:system.numberOfTimePoints,
-    Mx(i,:) = Mx(i,:).*phantom.shapeScaled(:).';
-    My(i,:) = My(i,:).*phantom.shapeScaled(:).';
-    Mz(i,:) = Mz(i,:).*phantom.shapeScaled(:).';
-    Mx_dt(i,:) = Mx_dt(i,:).*phantom.shapeScaled(:).';
-    My_dt(i,:) = My_dt(i,:).*phantom.shapeScaled(:).';
-    Mz_dt(i,:) = Mz_dt(i,:).*phantom.shapeScaled(:).';
+    mx(i,:) = mx(i,:).*phantom.shapeScaled(:).';
+    my(i,:) = my(i,:).*phantom.shapeScaled(:).';
+    mz(i,:) = mz(i,:).*phantom.shapeScaled(:).';
+    mx_dt(i,:) = mx_dt(i,:).*phantom.shapeScaled(:).';
+    my_dt(i,:) = my_dt(i,:).*phantom.shapeScaled(:).';
+    mz_dt(i,:) = mz_dt(i,:).*phantom.shapeScaled(:).';
 end
 
 clear('i');
@@ -445,10 +445,10 @@ tic
 results.u1_2=zeros(system.numberOfTimePoints,1);
 results.u2_2=zeros(system.numberOfTimePoints,1);
 for i=1:system.numberOfTimePoints
-    results.u1_2(i) = sum(((calculation.s1x.*(Mx_dt(i,:)-Mx(i,:))/calculation.dt)+(calculation.s1y.*(My_dt(i,:)-My(i,:))/calculation.dt)+(calculation.s1z.*(Mz_dt(i,:)-Mz(i,:))/calculation.dt)))+ normrnd(0,noise.maxAmplitude);
-    results.u2_2(i) = sum(((calculation.s2x.*(Mx_dt(i,:)-Mx(i,:))/calculation.dt)+(calculation.s2y.*(My_dt(i,:)-My(i,:))/calculation.dt)+(calculation.s2z.*(Mz_dt(i,:)-Mz(i,:))/calculation.dt)))+ normrnd(0,noise.maxAmplitude);
+    results.u1_2(i) = sum(((calculation.s1x.*(mx_dt(i,:)-mx(i,:))/calculation.dt)+(calculation.s1y.*(my_dt(i,:)-my(i,:))/calculation.dt)+(calculation.s1z.*(mz_dt(i,:)-mz(i,:))/calculation.dt)))+ normrnd(0,noise.maxAmplitude);
+    results.u2_2(i) = sum(((calculation.s2x.*(mx_dt(i,:)-mx(i,:))/calculation.dt)+(calculation.s2y.*(my_dt(i,:)-my(i,:))/calculation.dt)+(calculation.s2z.*(mz_dt(i,:)-mz(i,:))/calculation.dt)))+ normrnd(0,noise.maxAmplitude);
 end
-clear('Mx','My','Mz','Mx_dt','My_dt','Mz_dt');
+clear('mx','my','mz','mx_dt','my_dt','mz_dt');
 
 results.signal1FFT = fft(results.u1_2).'/system.numberOfTimePoints; %We store in the line each point, in the column the time point
 results.signal1FFT_oneSided = 2*results.signal1FFT(1:calculation.numberOfFrequencies);% We now remove the folded part of the spectrum

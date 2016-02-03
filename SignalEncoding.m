@@ -49,19 +49,19 @@ a=zeros(nbrPoint,1);
 mu0 = 4*pi*1e-7; % permeability of the air.
 Hpart=linspace(-10000,10000,nbrPoint);
 Bpart = Hpart.*mu0;
-Mpart=zeros(nbrPoint,1);
+mPart=zeros(nbrPoint,1);
 for i=1:nbrPoint,
-  [Mpart(i),~,~,~] = langevinParticle4( Bpart(i),0,0,abs(Bpart(i)), d,Ms,temperature,c,v);
+  [mPart(i),~,~,~] = langevinParticle4( Bpart(i),0,0,abs(Bpart(i)), d,Ms,temperature,c,v);
 
 end
 figure
 subplot(2,3,1)
 hold off
-plot(Bpart, Mpart, 'k');
+plot(Bpart, mPart, 'k');
 xlim([-max(Bpart) max(Bpart)])
 xlabel('B / (T)')
-ylabel('M / (A/m)')
-title('Particle magnetisation curve');
+ylabel('m / (A.m^2)')
+title('Magnetic field dependant magnetic moment curve of the sample');
 
 %% Drive field Amplitude in function of the time
 H=H0*sin(2*pi*f*time)+Hoffset;
@@ -76,24 +76,24 @@ ylabel('B / (T)')
 title(sprintf('Drive field amplitude: %0.2g mT peak - Offset %0.2g mT',B0*1000,Hoffset*mu0*1000));
 
 %% Particle Magnetization in function of the time
-M=zeros(N,1);
-Mdt=zeros(N,1);
+m=zeros(N,1);
+mdt=zeros(N,1);
 for i=1:N,
-  [M(i),~,~,~] = langevinParticle4( B(i),0,0,abs(B(i)), d,Ms,temperature,c,v);
-  [Mdt(i),~,~,~] = langevinParticle4( Bdt(i),0,0,abs(Bdt(i)), d,Ms,temperature,c,v);
+  [m(i),~,~,~] = langevinParticle4( B(i),0,0,abs(B(i)), d,Ms,temperature,c,v);
+  [mdt(i),~,~,~] = langevinParticle4( Bdt(i),0,0,abs(Bdt(i)), d,Ms,temperature,c,v);
 end
 
 subplot(2,3,2)
-plot(time, M, 'k');
+plot(time, m, 'k');
 xlabel('t / s')
-ylabel('M / (A/m)')
-title('Particle magnetisation');
+ylabel('m / (A.m^2)')
+title('Time dependant magnetic moment of the sample');
 
 Umax = Scaling*sqrt(4*kB*temperature*deltaF*Rp);% [V]
 u=zeros(N,1);
 
 for i=1:N,
-	u(i) = s*(M(i)-Mdt(i))/dt + normrnd(0,Umax);
+	u(i) = s*(m(i)-mdt(i))/dt + normrnd(0,Umax);
 end
 
 subplot(2,3,3)
