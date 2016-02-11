@@ -48,7 +48,7 @@ vBz = Bz(:);
 normB = Babs(:);   % norm of the field [T]
 
 %% Computation of the Langevin function
-a = mPart * normB/ (kB * T);
+a = mPartSat * normB/ (kB * T);
 
 % we have to approximate the field if x is small (due to the coth function
 if abs(a)<10^-9
