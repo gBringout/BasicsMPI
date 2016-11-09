@@ -6,7 +6,7 @@ The basic functions to:
 + simulate a 2D FFP scanner which is made of ideal/pure fields and obtain the system matrix basis functions
 + simulate a 2D FFL scanner which is made of ideal/pure field and obtain the systemmatrix basis functions
 
-More details on the workflow for the similation of MPI-signal for scanners is given in the [wiki](https://github.com/gBringout/BasicsMPI/wiki)
+More details on the workflow for the similation of MPI-signal for scanners is given in the [wiki](https://github.com/gBringout/BasicsMPI/wiki) and in [my thesis](http://gael-bringout.com/public/DissGaelBringout_Online_Compressed.pdf).
 
 Values and ideas comes mainly from:
 + [S. Biederer, "Entwicklung eines Spektrometers zur Analyse superparamagnetischer Eisenoxid-Nanopartikel für Magnetic-Particle-Imaging", Springer, 2012](http://www.springer.com/springer+vieweg/it+%26+informatik/wissenschaften/book/978-3-8348-2406-6)
